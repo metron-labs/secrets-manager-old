@@ -14,9 +14,10 @@ import {
   UTF_8_ENCODING,
 } from "./constants";
 import { KeySpecEnum } from "./enum";
+import pino from "pino";
 
 export async function encryptBuffer(
-  options: EncryptBufferOptions
+  options: EncryptBufferOptions, logger : pino.Logger
 ): Promise<Buffer> {
   try {
     // Generate a random 32-byte key
@@ -64,13 +65,13 @@ export async function encryptBuffer(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    console.error("AWS KMS Storage failed to encrypt:", err.message);
+    logger.error("AWS KMS Storage failed to encrypt:", err.message);
     return Buffer.alloc(0); // Return empty buffer in case of an error
   }
 }
 
 export async function decryptBuffer(
-  options: DecryptBufferOptions
+  options: DecryptBufferOptions,logger : pino.Logger
 ): Promise<string> {
   try {
     // Validate BLOB_HEADER
@@ -137,7 +138,7 @@ export async function decryptBuffer(
     return decrypted.toString(UTF_8_ENCODING);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    console.error("AWS KMS Storage failed to decrypt:", err.message);
+    logger.error("AWS KMS Storage failed to decrypt:", err.message);
     return ""; // Return empty string in case of an error
   }
 }

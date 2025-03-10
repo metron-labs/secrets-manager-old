@@ -12,19 +12,21 @@ import {
   DescribeKeyCommand,
   DescribeKeyCommandOutput,
 } from "@aws-sdk/client-kms";
+import pino from "pino";
 
 import { AWSSessionConfig } from "./AwsSessionConfig";
 import { AWSKeyValueStorageError } from "./error";
 import { AwsKmsClient } from "./AwsKmsClient";
-import { EncryptionAlgorithmEnum } from "./enum";
+import { EncryptionAlgorithmEnum, LoggerLogLevelOptions } from "./enum";
 import {
   DEFAULT_JSON_INDENT,
+  DEFAULT_LOG_LEVEL,
   HEX_DIGEST,
   MD5_HASH,
   supportedKeySpecs,
 } from "./constants";
 import { decryptBuffer, encryptBuffer } from "./utils";
-import { defaultLogger, Logger } from "./Logger";
+import { getLogger } from "./Logger";
 
 export class AWSKeyValueStorage implements KeyValueStorage {
   defaultConfigFileLocation: string = "client-config.json";
@@ -32,19 +34,11 @@ export class AWSKeyValueStorage implements KeyValueStorage {
   cryptoClient!: KMSClient;
   config: Record<string, string> = {};
   lastSavedConfigHash!: string;
-  logger: Logger;
+  logger: pino.Logger;
   encryptionAlgorithm: EncryptionAlgorithmSpec;
   awsCredentials!: AWSSessionConfig;
   keyType: string;
   configFileLocation!: string;
-
-  setLogger(logger: Logger | null) {
-    if (logger) {
-      this.logger = logger;
-    } else {
-      this.logger = defaultLogger;
-    }
-  }
 
   getString(key: string): Promise<string | undefined> {
     return this.get(key);
@@ -82,10 +76,10 @@ export class AWSKeyValueStorage implements KeyValueStorage {
     keyId: string,
     configFileLocation: string | null,
     awsSessionConfig: AWSSessionConfig | null,
-    logger: Logger | null
+    logLevel: LoggerLogLevelOptions,
   ) {
     /** 
-        Initilaizes AWSKeyValueStorage
+        Initializes AWSKeyValueStorage
 
         keyId URI of the master key
         ex. keyId = "arn:aws:kms:ap-south-1:<account>:key/<keyIdValue>"
@@ -94,14 +88,14 @@ export class AWSKeyValueStorage implements KeyValueStorage {
 
         configFileLocation provides custom config file location - if missing read from env KSM_CONFIG_FILE
         awsSessionConfig is AWS session config
-        Logger is a logger instance which can be bound or console will be chosen by default
+        Logger is a logger instance which is pino and will be chosen by default, log level can be passed
         **/
     this.configFileLocation =
       configFileLocation ??
       process.env.KSM_CONFIG_FILE ??
       this.defaultConfigFileLocation;
     this.keyId = keyId ?? process.env.KSM_AWS_KEY_ID;
-    this.setLogger(logger);
+    this.logger = getLogger(logLevel??DEFAULT_LOG_LEVEL);
 
     if (awsSessionConfig) {
       const hasAWSSessionConfig =
@@ -211,7 +205,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
           ciphertext: contents,
           cryptoClient: this.cryptoClient,
           keyType: this.keyType,
-        });
+        }, this.logger);
         try {
           config = JSON.parse(configJson);
           this.config = config ?? {};
@@ -285,7 +279,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
 
       // Check if saving is necessary
       if (!force && configHash === this.lastSavedConfigHash) {
-        console.warn("Skipped config JSON save. No changes detected.");
+        this.logger.warn("Skipped config JSON save. No changes detected.");
         return;
       }
 
@@ -304,14 +298,14 @@ export class AWSKeyValueStorage implements KeyValueStorage {
         message: stringifiedValue,
         cryptoClient: this.cryptoClient,
         keyType: this.keyType,
-      });
+      }, this.logger);
       await fs.writeFile(this.configFileLocation, blob);
 
       // Update the last saved config hash
       this.lastSavedConfigHash = configHash;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error saving config:", err.message);
+      this.logger.error("Error saving config:", err.message);
     }
   }
 
@@ -342,7 +336,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
         cryptoClient: this.cryptoClient,
         keyType: this.keyType,
         ciphertext,
-      });
+      }, this.logger);
       if (plaintext.length === 0) {
         this.logger.error(
           `Failed to decrypt config file ${this.configFileLocation}`
@@ -409,15 +403,15 @@ export class AWSKeyValueStorage implements KeyValueStorage {
           message: "{}",
           keyType: this.keyType,
           cryptoClient: this.cryptoClient,
-        });
+        }, this.logger);
         await fs.writeFile(this.configFileLocation, blob);
-        console.log("Config file created at:", this.configFileLocation);
+        this.logger.info("Config file created at:", this.configFileLocation);
       } else {
-        console.log("Config file already exists at:", this.configFileLocation);
+        this.logger.info("Config file already exists at:", this.configFileLocation);
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error creating config file:", err.message);
+      this.logger.error("Error creating config file:", err.message);
     }
   }
 

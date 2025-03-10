@@ -86,3 +86,12 @@ export enum MacAlgorithmsEnum {
   HMAC_SHA_384 = "HMAC_SHA_384",
   HMAC_SHA_512 = "HMAC_SHA_512",
 }
+
+export enum LoggerLogLevelOptions {
+  trace = "trace",
+  debug = "debug",
+  info = "info",
+  warn = "warn",
+  error = "error",
+  fatal = "fatal",
+}
