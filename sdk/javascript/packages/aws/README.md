@@ -4,7 +4,7 @@ Keeper Secrets Manager integrates with AWS KMS in order to provide protection fo
 ## Features
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with AWS KMS
 * Protect against unauthorized access to your Secrets Manager connections
-* Requires only minor changes to code for immediate protection.  Works with all Keeper Secrets Manager Python and Javascript SDK functionality
+* Requires only minor changes to code for immediate protection.  Works with all Keeper Secrets Manager Javascript SDK functionality
 
 ## Prerequisites
 * Supports the JavaScript Secrets Manager SDK
@@ -39,25 +39,21 @@ To do this, use AwsKmsKeyvalueStorage as your Secrets Manager storage in the Sec
 
 The storage will require an AWS Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by AWS KMS.
 ```
-    import {AWSKeyValueStorage,AWSSessionConfig} from "@keeper-security/secrets-manager-aws";
+    import {AWSKeyValueStorage,AWSSessionConfig,LoggerLogLevelOptions} from "@keeper-security/secrets-manager-aws";
 
     const getKeeperRecordsAWS = async () => {
 
         const accessKeyId ="<YOUR AWS ACCESS KEY>>"
         const secretAccessKey = "<YOUR AWS SECRET_ACCESS_KEY>"
-        const regionname = "<YOUR AWS REGION>"
+        const regionName = "<YOUR AWS REGION>"
     
-        const awsSessionConfig = new AWSSessionConfig(accessKeyId, secretAccessKey, regionname)
+        const awsSessionConfig = new AWSSessionConfig(accessKeyId, secretAccessKey, regionName)
     
         let config_path = "<config path to your configuration json>"
-        let logger = winston.createLogger({transports: [new winston.transports.Console()]});
-        
-        // oneTimeToken is used only once to initialize the storage
-        // after the first run, subsequent calls will use ksm-config.txt
-        const oneTimeToken = "US:kYKVGFJ2605-9UBF4VXd14AztMPXcxZ56zC9gr7O-Cw";
+        const oneTimeToken = "<token>";
         
         const keyId = 'arn:aws:kms:ap-south-1:<accountName>:key/<keyId>';
-        const storage = await new AWSKeyValueStorage(keyId,config_path,awsSessionConfig,logger).init();
+        const storage = await new AWSKeyValueStorage(keyId,config_path,awsSessionConfig,LoggerLogLevelOptions.info).init();
         
         await initializeStorage(storage, oneTimeToken);
         
@@ -75,18 +71,15 @@ The storage will require an AWS Key ID, as well as the name of the Secrets Manag
     getKeeperRecordsAWS()
 ```
 
-## Change Key operation and using default credentails from AWS
+## Change Key operation and using default credentials from AWS
 ```
-    import {AWSKeyValueStorage,AWSSessionConfig} from "@keeper-security/secrets-manager-aws";
+    import {AWSKeyValueStorage,AWSSessionConfig,LoggerLogLevelOptions} from "@keeper-security/secrets-manager-aws";
 
     const getKeeperRecordsAWS = async () => {
 
         const awsSessionConfig2 = new AWSSessionConfig()
     
         let config_path = "<path to client-config-aws.json>"
-        
-        // oneTimeToken is used only once to initialize the storage
-        // after the first run, subsequent calls will use ksm-config.txt
         const oneTimeToken = "US:kYKVGFJ2605-9UBF4VXd14AztMPXcxZ56zC9gr7O-Cw";
         
         const keyId = 'arn:aws:kms:ap-south-1:<accountName>:key/<keyId>';
@@ -95,9 +88,6 @@ The storage will require an AWS Key ID, as well as the name of the Secrets Manag
         await storage.changeKey(keyId2);
         await initializeStorage(storage, oneTimeToken);
         
-        // Using token only to generate a config (for later usage)
-        // requires at least one access operation to bind the token
-        
         const {records} = await getSecrets({storage: storage});
         console.log(records)
     
@@ -108,6 +98,14 @@ The storage will require an AWS Key ID, as well as the name of the Secrets Manag
     console.log("start")
     getKeeperRecordsAWS()
 ```
+
+## Decrypt config operation
+we can decrypt config and save locally the decrypted file original config
+```
+    const storage = await new AWSKeyValueStorage(keyId,config_path).init();
+    await storage.decryptConfig();    
+```
+
 
 You're ready to use the KSM integration 👍
 Using the AWS KMS Integration
