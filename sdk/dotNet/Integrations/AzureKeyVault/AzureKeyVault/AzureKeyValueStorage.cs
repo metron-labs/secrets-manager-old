@@ -13,7 +13,8 @@ using System.Text;
 using System.Linq;
 using Azure.Core;
 
-namespace AzureKeyVault{
+namespace AzureKeyVault
+{
 
     public class AzureKeyValueStorage : IKeyValueStorage
     {
@@ -21,27 +22,34 @@ namespace AzureKeyVault{
 
         private string keyId;
         private CryptographyClient cryptoClient;
-        private  Dictionary<string, string> config = new();
+        private Dictionary<string, string> config = new();
         private string lastSavedConfigHash;
         private readonly string configFileLocation = DefaultConfigFileLocation;
         private readonly ILogger logger;
         public TokenCredential azureCredentials { get; private set; }
 
-        public AzureKeyValueStorage(string keyId,string? configFileLocation = null, AzureSessionConfig? credentials=null,ILogger<AzureKeyValueStorage>? logger = null)
+        public AzureKeyValueStorage(string keyId, string? configFileLocation = null, AzureSessionConfig? credentials = null, ILogger<AzureKeyValueStorage>? logger = null)
         {
             this.keyId = keyId;
-            this.configFileLocation = Path.GetFullPath(configFileLocation) ?? DefaultConfigFileLocation;
+            if (configFileLocation == null)
+            {
+                configFileLocation = DefaultConfigFileLocation;
+            }
+            else
+            {
+                this.configFileLocation = Path.GetFullPath(configFileLocation);
+            }
 
             // Initialize Azure Key Vault CryptographyClient
-            if (credentials != null && 
-                !string.IsNullOrEmpty(credentials.TenantId) && 
-                !string.IsNullOrEmpty(credentials.ClientId) && 
+            if (credentials != null &&
+                !string.IsNullOrEmpty(credentials.TenantId) &&
+                !string.IsNullOrEmpty(credentials.ClientId) &&
                 !string.IsNullOrEmpty(credentials.ClientSecret))
             {
                 // Use ClientSecretCredential when all values are provided
                 azureCredentials = new ClientSecretCredential(
-                    credentials.TenantId, 
-                    credentials.ClientId, 
+                    credentials.TenantId,
+                    credentials.ClientId,
                     credentials.ClientSecret);
             }
             else
@@ -57,27 +65,48 @@ namespace AzureKeyVault{
 
         public string? GetString(string key)
         {
+            if (config.Count == 0)
+            {
+                LoadConfigAsync().Wait();
+            }
             return config.TryGetValue(key, out var value) ? value : null;
         }
 
         public void SaveString(string key, string value)
         {
+            if (config.Count == 0)
+            {
+                LoadConfigAsync().Wait();
+            }
             config[key] = value;
+            SaveConfigAsync(config).Wait();
         }
 
         public byte[]? GetBytes(string key)
         {
+            if (config.Count == 0)
+            {
+                LoadConfigAsync().Wait();
+            }
+
             var stringValue = config.TryGetValue(key, out var result) ? result : null;
             return stringValue == null ? null : CryptoUtils.Base64ToBytes(stringValue);
         }
 
         public void SaveBytes(string key, byte[] value)
         {
+            if (config.Count == 0)
+            {
+                LoadConfigAsync().Wait();
+            }
             config[key] = CryptoUtils.BytesToBase64(value);
+            SaveConfigAsync(config).Wait();
         }
 
-        public void Delete(string key){
+        public void Delete(string key)
+        {
             config.Remove(key);
+            SaveConfigAsync(config).Wait();
         }
 
         public async Task CreateConfigFileIfMissingAsync()
@@ -98,7 +127,7 @@ namespace AzureKeyVault{
                 }
 
                 // Encrypt an empty configuration and write to the file
-                byte[] blob = await IntegrationUtils.EncryptBufferAsync(cryptoClient,"{}");
+                byte[] blob = await IntegrationUtils.EncryptBufferAsync(cryptoClient, "{}", logger);
                 await File.WriteAllBytesAsync(configFileLocation, blob);
 
                 logger.LogInformation("Config file created at: {Path}", configFileLocation);
@@ -118,29 +147,22 @@ namespace AzureKeyVault{
                 // Read the config file
                 byte[] contents;
                 try
-                {   
+                {
                     string configData = File.ReadAllText(configFileLocation);
-                    
-                    using (FileStream fs = new FileStream(configFileLocation, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (StreamReader reader = new StreamReader(fs))
-                    {
-                        string json = reader.ReadToEnd();
-                        Console.WriteLine($"📜 Read JSON: '{json}' (Length: {json.Length})");
-                    }
 
                     try
                     {
                         bool fileExists = File.Exists(configFileLocation);
                         var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
                         contents = Encoding.UTF8.GetBytes(configData);
-                        Console.WriteLine("Valid JSON parsed successfully.");
+                        logger.LogInformation("Valid JSON parsed successfully.");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error parsing valid JSON: {ex.Message}");
+                        logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
                         contents = await File.ReadAllBytesAsync(configFileLocation);
                     }
-                    
+
                     logger.LogInformation("Loaded config file {Path}", configFileLocation);
                 }
                 catch (Exception ex)
@@ -183,7 +205,7 @@ namespace AzureKeyVault{
                 {
                     try
                     {
-                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(cryptoClient,contents);
+                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(cryptoClient, contents, logger);
                         parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedJson);
 
                         if (parsedConfig != null)
@@ -196,7 +218,7 @@ namespace AzureKeyVault{
                     catch (Exception ex)
                     {
                         decryptionError = true;
-                        logger.LogError("Failed to parse decrypted config file: {Message}", ex.Message);
+                        logger.LogDebug("Failed to parse decrypted config file: {Message}", ex.Message);
                         throw new Exception($"Failed to parse decrypted config file {configFileLocation}");
                     }
                 }
@@ -247,7 +269,7 @@ namespace AzureKeyVault{
                 await CreateConfigFileIfMissingAsync();
 
                 // Encrypt the config JSON and write to the file
-                byte[] blob = await IntegrationUtils.EncryptBufferAsync(cryptoClient,SerializeConfig(config));
+                byte[] blob = await IntegrationUtils.EncryptBufferAsync(cryptoClient, SerializeConfig(config), logger);
                 await File.WriteAllBytesAsync(configFileLocation, blob);
 
                 // Update the last saved config hash
@@ -289,10 +311,10 @@ namespace AzureKeyVault{
             try
             {
                 // Decrypt the file contents
-                plaintext = await IntegrationUtils.DecryptBufferAsync(cryptoClient,ciphertext);
+                plaintext = await IntegrationUtils.DecryptBufferAsync(cryptoClient, ciphertext, logger);
                 if (string.IsNullOrWhiteSpace(plaintext))
                 {
-                    logger.LogError("Failed to decrypt config file {File}", configFileLocation);
+                    logger.LogInformation("Failed to decrypt config file {File}", configFileLocation);
                 }
                 else if (autosave)
                 {
@@ -336,8 +358,9 @@ namespace AzureKeyVault{
         }
 
         private static string SerializeConfig(Dictionary<string, string>? config)
-        {   
-            if (config == null){
+        {
+            if (config == null)
+            {
                 return "{}";
             }
             var sortedKeys = Enumerable.OrderBy(config.Keys, k => k).ToList();

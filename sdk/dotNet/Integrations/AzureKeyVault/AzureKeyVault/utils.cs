@@ -5,14 +5,14 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Azure.Security.KeyVault.Keys.Cryptography;
+using Microsoft.Extensions.Logging;
 
 public class IntegrationUtils
 {
     private const int AesKeySize = IntegrationConstants.AES_KEY_SIZE; // 256-bit key
     private const int NonceSize = IntegrationConstants.NONCE_SIZE;  // AES-GCM nonce size
-    private const string RsaOaepAlgorithm = IntegrationConstants.RSA_OAEP;
-    
-    public static async Task<byte[]> EncryptBufferAsync(CryptographyClient azureKvStorageCryptoClient, string message)
+
+    public static async Task<byte[]> EncryptBufferAsync(CryptographyClient azureKvStorageCryptoClient, string message, ILogger logger)
     {
         try
         {
@@ -24,7 +24,7 @@ public class IntegrationUtils
 
             // Step 3: Encrypt the message using AES-GCM
             byte[] ciphertext, tag;
-            using (AesGcm aes = new AesGcm(key,IntegrationConstants.AES_GCM_TAG_BYTE_SIZE))
+            using (AesGcm aes = new AesGcm(key, IntegrationConstants.AES_GCM_TAG_BYTE_SIZE))
             {
                 byte[] plaintextBytes = Encoding.UTF8.GetBytes(message);
                 ciphertext = new byte[plaintextBytes.Length];
@@ -37,12 +37,12 @@ public class IntegrationUtils
             byte[] wrappedKey;
             try
             {
-                WrapResult wrapResult = await azureKvStorageCryptoClient.WrapKeyAsync(RsaOaepAlgorithm, key);
+                WrapResult wrapResult = await azureKvStorageCryptoClient.WrapKeyAsync(KeyWrapAlgorithm.RsaOaep, key);
                 wrappedKey = wrapResult.EncryptedKey;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Azure crypto client failed to wrap key: {ex.Message}");
+                logger.LogError($"Azure crypto client failed to wrap key: {ex.Message}");
                 return Array.Empty<byte>(); // Return empty array in case of an error
             }
 
@@ -62,12 +62,12 @@ public class IntegrationUtils
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Azure KeyVault Storage failed to encrypt: {ex.Message}");
+            logger.LogCritical($"Azure KeyVault Storage failed to encrypt: {ex.Message}");
             return Array.Empty<byte>(); // Return empty array in case of an error
         }
     }
 
-    public static async Task<string> DecryptBufferAsync(CryptographyClient azureKeyVaultCryptoClient, byte[] ciphertext)
+    public static async Task<string> DecryptBufferAsync(CryptographyClient azureKeyVaultCryptoClient, byte[] ciphertext, ILogger logger)
     {
         try
         {
@@ -116,14 +116,14 @@ public class IntegrationUtils
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Azure crypto client failed to unwrap key: {ex.Message}");
+                logger.LogError($"Azure crypto client failed to unwrap key. \n Message : {ex.Message}");
                 return string.Empty;
             }
 
             // Step 4: Decrypt the message using AES-GCM
             try
             {
-                using AesGcm aesGcm = new AesGcm(aesKey,IntegrationConstants.AES_GCM_TAG_BYTE_SIZE);
+                using AesGcm aesGcm = new AesGcm(aesKey, IntegrationConstants.AES_GCM_TAG_BYTE_SIZE);
                 byte[] decryptedData = new byte[encryptedText.Length];
 
                 aesGcm.Decrypt(nonce, encryptedText, tag, decryptedData);
@@ -133,13 +133,13 @@ public class IntegrationUtils
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Decryption failed: {ex.Message}");
+                logger.LogError($"Decryption failed: {ex.Message}");
                 return string.Empty;
             }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Azure KeyVault Storage failed to decrypt: {ex.Message}");
+            logger.LogError($"Azure KeyVault Storage failed to decrypt: {ex.Message}");
             return string.Empty;
         }
     }
