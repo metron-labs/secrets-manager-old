@@ -81,13 +81,16 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 						: this.defaultConfigFileLocation;
 		this.keyId = keyId != null ? keyId : System.getenv(Constants.KSM_AZ_KEY_ID);
 		tokencredential = getSecretCredential(azSessionConfig);
-		cryptoClient = new CryptographyClientBuilder().credential(tokencredential).keyIdentifier(keyId).buildClient();
+		cryptoClient = getCryptoClient(this.keyId);
 		loadConfig();
 	}
 
-	public static KeyValueStorage getInternalStorage(String keyId, String configFileLocation,
+	private CryptographyClient getCryptoClient(String keyId) {
+		return new CryptographyClientBuilder().credential(tokencredential).keyIdentifier(keyId).buildClient();
+	}
+	public static AzureKeyValueStorage getInternalStorage(String keyId, String configFileLocation,
 			AzureSessionConfig azSessionConfig) throws Exception {
-		KeyValueStorage storage = new AzureKeyValueStorage(keyId, configFileLocation, azSessionConfig);
+		AzureKeyValueStorage storage = new AzureKeyValueStorage(keyId, configFileLocation, azSessionConfig);
 		return storage;
 	}
 
@@ -101,6 +104,29 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 				.clientSecret(azSessionConfig.getClientSecret()).tenantId(azSessionConfig.getTenantId()).build();
 	}
 
+	/**
+	 * Change key method used to re-encrypt the config with new Key 
+	 * @param newKeyId
+	 */
+	public void changeKey(String newKeyId) {
+		System.out.println("Change Key initiated");
+		String configJson="";
+		String oldKey = this.keyId;
+		Map<String, Object> oldconfigMap = this.configMap;
+		CryptographyClient oldCryptoClient = this.cryptoClient;
+		
+		try {
+			this.keyId = newKeyId;
+			this.cryptoClient = getCryptoClient(newKeyId);
+			save(configJson, configMap);
+			System.out.println("Encrypted using newKeyId");
+		}catch(Exception e) {
+			this.keyId = oldKey;
+			this.cryptoClient = oldCryptoClient;
+			System.out.println("Exception.....");
+		}
+	}
+	
 	/**
 	 * Load the configuration for encrypt/decrypt
 	 * @throws Exception
@@ -155,6 +181,27 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 			}
 		}
 	}
+	
+	/**
+	 * Decrypt the encrypted config, autosave=true/false
+	 * @param autosave
+	 * @return
+	 * @throws Exception
+	 */
+	public String decryptConfig(boolean autosave) throws Exception {
+		String decryptedContent=null;
+		if (!JsonUtils.isValidJsonFile(configFileLocation)) {
+			 decryptedContent = decryptBuffer(readEncryptedJsonFile());
+			 if(autosave) {
+				 Path path = Paths.get(configFileLocation);
+					if (Files.exists(path)) 
+						Files.write(path, decryptedContent.getBytes(StandardCharsets.UTF_8));
+			 }
+			 return decryptedContent;
+		} else 
+			return null;
+	}
+	
 	private byte[] readEncryptedJsonFile() throws Exception{
 		Path path = Paths.get(configFileLocation);
 		if (!Files.exists(path)) {
@@ -213,7 +260,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 		byte[] ciphertext = cipher.doFinal(message.getBytes());
 		
 		byte[] tag = cipher.getIV();
-		byte[] encryptedKey = cryptoClient.wrapKey(KeyWrapAlgorithm.RSA_OAEP, key).getEncryptedKey();
+		byte[] encryptedKey = cryptoClient.wrapKey(KeyWrapAlgorithm.RSA_OAEP_256, key).getEncryptedKey();
 
 		ByteArrayOutputStream blob = new ByteArrayOutputStream();
 		blob.write(Constants.BLOB_HEADER);
@@ -243,7 +290,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 		byte[] ciphertext = readLengthPrefixed(blobInputStream);
 
 		// Decrypt the AES key using RSA (unwrap the key)
-		UnwrapResult unwrapResult = cryptoClient.unwrapKey(KeyWrapAlgorithm.RSA_OAEP, encryptedKey);
+		UnwrapResult unwrapResult = cryptoClient.unwrapKey(KeyWrapAlgorithm.RSA_OAEP_256, encryptedKey);
 		byte[] key = unwrapResult.getKey();
 		
 		Cipher cipher = getGCMCipher(Cipher.DECRYPT_MODE, key, nonce);
