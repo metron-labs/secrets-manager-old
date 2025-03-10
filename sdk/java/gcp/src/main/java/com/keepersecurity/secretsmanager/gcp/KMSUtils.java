@@ -53,6 +53,14 @@ public class KMSUtils {
 			e.printStackTrace();
 		}
 	}
+	
+	public void setKeyId(String newKeyId) {
+		this.sessionConfig.setKeyId(newKeyId);
+	}
+	
+	public String getKeyId() {
+		return this.sessionConfig.getKeyId();
+	}
 
 	/**
 	 * Encrypt data using an asymmetric RSA public key

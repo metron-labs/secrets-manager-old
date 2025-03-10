@@ -63,10 +63,25 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 	 * @return
 	 * @throws Exception
 	 */
-	public static KeyValueStorage getInternalStorage(String configFileLocation, GcpSessionConfig sessionConfig)
+	public static GcpKeyValueStorage getInternalStorage(String configFileLocation, GcpSessionConfig sessionConfig)
 			throws Exception {
-		KeyValueStorage storage = new GcpKeyValueStorage(configFileLocation, sessionConfig);
+		GcpKeyValueStorage storage = new GcpKeyValueStorage(configFileLocation, sessionConfig);
 		return storage;
+	}
+	
+	public void changeKey(String newKeyId) {
+		System.out.println("Change Key initiated");
+		String oldKey = kmsClient.getKeyId();
+		String configJson="";
+		Map<String, Object> oldconfigMap = this.configMap;
+		try {
+			kmsClient.setKeyId(newKeyId);
+			save(configJson, configMap);
+			System.out.println("Encrypted using newKeyId");
+		}catch(Exception e) {
+			kmsClient.setKeyId(oldKey);
+		}
+		
 	}
 
 	/**
@@ -118,6 +133,26 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 		}
 	}
 
+	/**
+	 * Decrypt the encrypted config, autosave=true/false
+	 * @param autosave
+	 * @return
+	 * @throws Exception
+	 */
+	public String decryptConfig(boolean autosave) throws Exception {
+		String decryptedContent=null;
+		if (!JsonUtil.isValidJsonFile(configFileLocation)) {
+			 decryptedContent = decryptBuffer(readEncryptedJsonFile());
+			 if(autosave) {
+				 Path path = Paths.get(configFileLocation);
+					if (Files.exists(path)) 
+						Files.write(path, decryptedContent.getBytes(StandardCharsets.UTF_8));
+			 }
+			 return decryptedContent;
+		} else 
+			return null;
+	}
+	
 	private byte[] readEncryptedJsonFile() throws Exception {
 		Path path = Paths.get(configFileLocation);
 		if (!Files.exists(path)) {
