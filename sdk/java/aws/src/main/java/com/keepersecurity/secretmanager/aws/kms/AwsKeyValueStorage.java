@@ -68,10 +68,32 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	 * @return
 	 * @throws Exception
 	 */
-	public static KeyValueStorage getInternalStorage(String keyId, String configFileLocation,
+	public static AwsKeyValueStorage getInternalStorage(String keyId, String configFileLocation,
 			AwsSessionConfig sessionConfig) throws Exception {
-		KeyValueStorage storage = new AwsKeyValueStorage(keyId, configFileLocation, sessionConfig);
+		AwsKeyValueStorage storage = new AwsKeyValueStorage(keyId, configFileLocation, sessionConfig);
 		return storage;
+	}
+	
+	/**
+	 * Change key method used to encrypt config with new key
+	 * @param newKeyId
+	 */
+	public void changeKey(String newKeyId) {
+		System.out.println("Change Key initiated");
+		String configJson="";
+		String oldKey = this.keyId;
+		Map<String, Object> oldconfigMap = this.configMap;
+		AWSKMSClient oldkmsClient = this.kmsClient;
+		
+		try {
+			this.keyId = newKeyId;
+			save(configJson, configMap);
+			System.out.println("Encrypted using newKeyId");
+		}catch(Exception e) {
+			this.keyId = oldKey;
+			this.kmsClient = oldkmsClient;
+			System.out.println("Exception.....");
+		}
 	}
 
 	/**
@@ -129,7 +151,6 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 			createConfigFileIfMissing();
 		}
 		return Files.readAllBytes(path);
-
 	}
 
 	/**
@@ -225,6 +246,26 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 			byte[] decryptedMessage = cipher.doFinal(ciphertext);
 			return new String(decryptedMessage, StandardCharsets.UTF_8);
 		}
+	}
+	
+	/**
+	 * Decrypt the encrypted config, autosave=true/false
+	 * @param autosave
+	 * @return
+	 * @throws Exception
+	 */
+	public String decryptConfig(boolean autosave) throws Exception {
+		String decryptedContent=null;
+		if (!JsonUtil.isValidJsonFile(configFileLocation)) {
+			 decryptedContent = decryptBuffer(readEncryptedJsonFile());
+			 if(autosave) {
+				 Path path = Paths.get(configFileLocation);
+					if (Files.exists(path)) 
+						Files.write(path, decryptedContent.getBytes(StandardCharsets.UTF_8));
+			 }
+			 return decryptedContent;
+		} else 
+			return null;
 	}
 
 	private byte[] readLengthPrefixed(InputStream stream) throws IOException {
