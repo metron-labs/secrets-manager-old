@@ -79,7 +79,7 @@ def decrypt_buffer(key_id : str, ciphertext : str,  crypto_client: KmsCryptoClie
 
         # Parse the ciphertext into its components
         encrypted_key, nonce, tag, encrypted_text = (b'', b'', b'', b'')
-        for x in range(1, 5):
+        for _ in range(1, 5):
             buf = ciphertext[pos:pos + 2]  # chunks are size prefixed
             pos += len(buf)
             if len(buf) == 2:
@@ -90,6 +90,7 @@ def decrypt_buffer(key_id : str, ciphertext : str,  crypto_client: KmsCryptoClie
                     parts.append(buf)
                 else:
                     logging.error("Decryption buffer contains incomplete data.")
+                    raise ValueError("Decryption buffer contains incomplete data.")
 
         encrypted_key, nonce, tag, encrypted_text = parts
 
