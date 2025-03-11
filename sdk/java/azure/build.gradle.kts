@@ -1,7 +1,7 @@
 import org.gradle.kotlin.dsl.`maven-publish`
 import org.gradle.kotlin.dsl.signing
 
-group = "com.keepersecurity.secrets-manager.azure"
+group = "com.keepersecurity.secrets-manager.azurekv"
 version = "1.0.0"
 
 plugins {

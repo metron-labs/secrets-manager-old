@@ -112,7 +112,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 	 * @param newKeyId
 	 */
 	public void changeKey(String newKeyId) {
-		System.out.println("Change Key initiated");
+		logger.info("Change Key initiated");
 		String configJson="";
 		String oldKey = this.keyId;
 		Map<String, Object> oldconfigMap = this.configMap;
@@ -122,11 +122,11 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 			this.keyId = newKeyId;
 			this.cryptoClient = getCryptoClient(newKeyId);
 			save(configJson, configMap);
-			System.out.println("Encrypted using newKeyId");
+			logger.info("Encrypted using new KeyId");
 		}catch(Exception e) {
 			this.keyId = oldKey;
 			this.cryptoClient = oldCryptoClient;
-			System.out.println("Exception.....");
+			logger.error("Exception: "+e.getMessage());
 		}
 	}
 	
@@ -179,7 +179,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 				}
 				byte[] encryptedData = encryptBuffer(configJson);
 				Files.write(Paths.get(configFileLocation), encryptedData);
-				logger.info("KSM config saved fo file success.");
+				logger.info("KSM config saved into file success.");
 			} catch (Exception e) {
 				logger.error("Exception: "+e.getMessage());
 			}
@@ -198,12 +198,16 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 			 decryptedContent = decryptBuffer(readEncryptedJsonFile());
 			 if(autosave) {
 				 Path path = Paths.get(configFileLocation);
-					if (Files.exists(path)) 
+					if (Files.exists(path)) {
 						Files.write(path, decryptedContent.getBytes(StandardCharsets.UTF_8));
+						logger.info("Decrypted KSM config saved into file success.");
+					}
 			 }
 			 return decryptedContent;
-		} else 
+		} else {
+			logger.info("KSM config is plain json only.");
 			return null;
+		}
 	}
 	
 	private byte[] readEncryptedJsonFile() throws Exception{
@@ -280,8 +284,8 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 	 * @throws Exception
 	 */
 	private String decryptBuffer(byte[] encryptedData) throws Exception {
+		
 		ByteArrayInputStream blobInputStream = new ByteArrayInputStream(encryptedData);
-
 		byte[] header = new byte[Constants.BLOB_HEADER.length];
 		blobInputStream.read(header);
 		if (!MessageDigest.isEqual(header, Constants.BLOB_HEADER)) {
