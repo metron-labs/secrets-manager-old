@@ -1,5 +1,8 @@
 package com.keepersecurity.secretmanager.aws.kms;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
 #  _  __
 # | |/ /___ ___ _ __  ___ _ _ (R)
@@ -24,6 +27,8 @@ import software.amazon.awssdk.services.kms.model.EncryptResponse;
 import software.amazon.awssdk.services.kms.model.EncryptionAlgorithmSpec;
 
 public class AWSKMSClient {
+
+	final static Logger logger = LoggerFactory.getLogger(AWSKMSClient.class);
 
 	private KmsClient kmsClient;
 
@@ -63,6 +68,7 @@ public class AWSKMSClient {
 	}
 	
 	private byte[] encryptSymmetric(SdkBytes message, String keyId) throws Exception {
+		logger.debug("Encrypt Using Symmetric Key");
 		EncryptRequest encryptRequest = EncryptRequest.builder().keyId(keyId)
 				.plaintext(message).build();
 		EncryptResponse encryptResponse = kmsClient.encrypt(encryptRequest);
@@ -71,6 +77,7 @@ public class AWSKMSClient {
 	}
 
 	private SdkBytes decryptSymmetric(byte[] ciphertext, String keyId) throws Exception {
+		logger.debug("Decrypt Using Symmetric Key");
 		DecryptRequest decryptRequest = DecryptRequest.builder().keyId(keyId)
 				.ciphertextBlob(SdkBytes.fromByteArray(ciphertext))
 				.build();
@@ -79,6 +86,7 @@ public class AWSKMSClient {
 	}
 	
 	private byte[] encryptAsymmetric(SdkBytes message, String keyId) throws Exception {
+		logger.debug("Encrypt Using Asymmetric Key");
 		EncryptRequest encryptRequest = EncryptRequest.builder().keyId(keyId)
 				.plaintext(message)
 				.encryptionAlgorithm(EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256)
@@ -87,6 +95,7 @@ public class AWSKMSClient {
 		return encryptResponse.ciphertextBlob().asByteArray();
 	}
 	private SdkBytes decryptAsymmetric(byte[] ciphertext, String keyId) throws Exception {
+		logger.debug("Decrypt Using Asymmetric Key");
 		DecryptRequest decryptRequest = DecryptRequest.builder().keyId(keyId)
 				.ciphertextBlob(SdkBytes.fromByteArray(ciphertext))
 				.encryptionAlgorithm(EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256)

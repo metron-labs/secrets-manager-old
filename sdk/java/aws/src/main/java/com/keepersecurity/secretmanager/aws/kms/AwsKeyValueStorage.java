@@ -85,6 +85,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	 * @param newKeyId
 	 */
 	public void changeKey(String newKeyId) {
+		logger.info("Change Key initiated");
 		String configJson="";
 		String oldKey = this.keyId;
 		Map<String, Object> oldconfigMap = this.configMap;
@@ -93,11 +94,11 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 		try {
 			this.keyId = newKeyId;
 			save(configJson, configMap);
-			System.out.println("Encrypted using newKeyId");
+			logger.info("Encrypted using new KeyId");
 		}catch(Exception e) {
 			this.keyId = oldKey;
 			this.kmsClient = oldkmsClient;
-			System.out.println("Exception.....");
+			logger.error("Exception: "+e.getMessage());
 		}
 	}
 
@@ -269,12 +270,16 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 			 decryptedContent = decryptBuffer(readEncryptedJsonFile());
 			 if(autosave) {
 				 Path path = Paths.get(configFileLocation);
-					if (Files.exists(path)) 
+					if (Files.exists(path)) {
 						Files.write(path, decryptedContent.getBytes(StandardCharsets.UTF_8));
+						logger.info("Decrypted KSM config saved into file success.");
+					}
 			 }
 			 return decryptedContent;
-		} else 
+		} else {
+			logger.info("KSM config is plain json only.");
 			return null;
+		}
 	}
 
 	private byte[] readLengthPrefixed(InputStream stream) throws IOException {
@@ -335,6 +340,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 		try {
 			return JsonUtil.convertToString(configMap);
 		} catch (JsonProcessingException e) {
+			logger.error("Exception: "+e.getMessage());
 		}
 		return null;
 
