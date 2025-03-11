@@ -1,20 +1,21 @@
+#nullable enable
+
+using Google.Cloud.Kms.V1;
 using System;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
+using Google.Protobuf;
+using Microsoft.Extensions.Logging;
+using System.Text;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using Amazon.KeyManagementService;
-using Amazon.KeyManagementService.Model;
-using Microsoft.Extensions.Logging;
 
-
-public class IntegrationUtils
+public class KMSUtils
 {
     private const int AesKeySize = IntegrationConstants.AES_KEY_SIZE; // 256-bit key
     private const int NonceSize = IntegrationConstants.NONCE_SIZE;  // AES-GCM nonce size
 
-    public static async Task<byte[]> EncryptBufferAsync(AmazonKeyManagementServiceClient GCPKvStorageCryptoClient, EncryptBufferOptions options, ILogger logger)
+    public static async Task<byte[]> EncryptBufferAsync( EncryptBufferOptions options, ILogger logger)
     {
         try
         {
@@ -35,31 +36,16 @@ public class IntegrationUtils
                 aes.Encrypt(nonce, plaintextBytes, ciphertext, tag);
             }
 
-
-            EncryptRequest encryptRequest;
-            if (options.KeyType == KeySpecEnum.SYMMETRIC_DEFAULT)
+            var encryptOptions = new EncryptOptions
             {
-                encryptRequest = new EncryptRequest
-                {
-                    KeyId = options.KeyId,
-                    Plaintext = new MemoryStream(key),
+                KeyProperties = options.KeyProperties,
+                Message = key,
+                CryptoClient = options.CryptoClient,
+                IsAsymmetric = options.IsAsymmetric,
+                EncryptionAlgorithm = options.EncryptionAlgorithm,
+            };
 
-                };
-            }
-            else
-            {
-                encryptRequest = new EncryptRequest
-                {
-                    KeyId = options.KeyId,
-                    Plaintext = new MemoryStream(key),
-                    EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256
-                };
-            }
-
-            var response = await GCPKvStorageCryptoClient.EncryptAsync(encryptRequest);
-
-            var EncryptedKey = response.CiphertextBlob.ToArray();
-
+            var EncryptedKey = options.IsAsymmetric ? await EncryptDataAsymmetric(encryptOptions) : await EncryptDataSymmetric(encryptOptions);
 
             // Step 5: Build the encrypted blob
             using (MemoryStream ms = new MemoryStream())
@@ -82,7 +68,7 @@ public class IntegrationUtils
         }
     }
 
-    public static async Task<string> DecryptBufferAsync(AmazonKeyManagementServiceClient GCPKeyManagementCryptoClient, DecryptBufferOptions options, ILogger logger)
+    public static async Task<string> DecryptBufferAsync( DecryptBufferOptions options, ILogger logger)
     {
         try
         {
@@ -123,29 +109,15 @@ public class IntegrationUtils
 
 
             // Step 3: Unwrap AES key using GCPKeyManagement Key
-            DecryptRequest decryptRequest;
-            if (options.KeyType == KeySpecEnum.SYMMETRIC_DEFAULT)
-            {
-                decryptRequest = new DecryptRequest
-                {
-                    KeyId = options.KeyId,
-                    CiphertextBlob = new MemoryStream(encryptedKey),
+            var decryptData = new DecryptOptions{
+                KeyProperties = options.KeyProperties,
+                CipherText = encryptedKey,
+                CryptoClient = options.CryptoClient,
+                IsAsymmetric = options.IsAsymmetric,
+                EncryptionAlgorithm = options.EncryptionAlgorithm ,
+            };
 
-                };
-            }
-            else
-            {
-                decryptRequest = new DecryptRequest
-                {
-                    KeyId = options.KeyId,
-                    CiphertextBlob = new MemoryStream(encryptedKey),
-                    EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256
-                };
-            }
-
-            var response = await GCPKeyManagementCryptoClient.DecryptAsync(decryptRequest);
-
-            var decryptedKey = response.Plaintext.ToArray();
+            var decryptedKey = await DecryptData(decryptData);
 
             // Step 4: Decrypt the message using AES-GCM
             try
@@ -171,6 +143,110 @@ public class IntegrationUtils
         }
     }
 
+
+    public static async Task<byte[]> EncryptDataAsymmetric(EncryptOptions options)
+    {
+        string keyName = options.KeyProperties.ToResourceName();
+
+        // Get the public key from Cloud KMS
+        PublicKey publicKey = await options.CryptoClient.GetPublicKeyAsync(new GetPublicKeyRequest { Name = keyName });
+
+        if (publicKey.Name != keyName)
+        {
+            throw new Exception("GetPublicKey: request corrupted in-transit");
+        }
+
+        string[] blocks = publicKey.Pem.Split("-", StringSplitOptions.RemoveEmptyEntries);
+        byte[] pem = Convert.FromBase64String(blocks[1]);
+
+
+        // Encrypt using RSA and OAEP padding
+        using RSA rsa = RSA.Create();
+        rsa.ImportSubjectPublicKeyInfo(pem, out _);
+
+        RSAEncryptionPadding padding = GetPadding(GetHashingAlgorithm(options.EncryptionAlgorithm));
+        byte[] ciphertext = rsa.Encrypt(options.Message, padding);
+
+        return ciphertext;
+    }
+
+    public static async Task<byte[]> EncryptDataSymmetric(EncryptOptions options)
+    {
+        string keyName = options.KeyProperties.ToResourceName();
+        byte[] encodedData = options.Message;
+
+        var kmsClient = options.CryptoClient;
+        var request = new EncryptRequest
+        {
+            Name = keyName,
+            Plaintext = ByteString.CopyFrom(encodedData),
+        };
+
+        EncryptResponse encryptResponse = await kmsClient.EncryptAsync(request);
+        byte[] ciphertext = encryptResponse.Ciphertext.ToByteArray();
+
+        return ciphertext;
+    }
+
+    public static async Task<byte[]> DecryptData(
+        DecryptOptions options)
+    {
+
+        if (options.IsAsymmetric)
+        {
+            var request = new AsymmetricDecryptRequest
+            {
+                Name =options.KeyProperties.ToResourceName(), 
+                Ciphertext = ByteString.CopyFrom(options.CipherText),
+            };
+            var response = await options.CryptoClient.AsymmetricDecryptAsync(request);
+
+            return response.Plaintext.ToByteArray();
+        }
+        else
+        {
+            var request = new DecryptRequest
+            {
+                Name = options.KeyProperties.ToKeyName(),
+                Ciphertext = ByteString.CopyFrom(options.CipherText),
+            };
+            var response = await options.CryptoClient.DecryptAsync(request);
+
+            return response.Plaintext.ToByteArray();
+        }
+    }
+
+
+    private static RSAEncryptionPadding GetPadding(string encryptionAlgorithm)
+    {
+        return encryptionAlgorithm switch
+        {
+            "RSAES_OAEP_SHA_256" => RSAEncryptionPadding.OaepSHA256,
+            "RSAES_OAEP_SHA_1" => RSAEncryptionPadding.OaepSHA1,
+            _ => throw new ArgumentException("Unsupported encryption algorithm", nameof(encryptionAlgorithm)),
+        };
+    }
+
+    private static readonly System.Collections.Generic.Dictionary<string, string> SupportedEncryptionAlgorithms = new()
+    {
+        { "RSA_DECRYPT_OAEP_2048_SHA256", "SHA256" },
+        { "RSA_DECRYPT_OAEP_3072_SHA256", "SHA256" },
+        { "RSA_DECRYPT_OAEP_4096_SHA256", "SHA256" },
+        { "RSA_DECRYPT_OAEP_4096_SHA512", "SHA512" },
+        { "RSA_DECRYPT_OAEP_2048_SHA1", "SHA1" },
+        { "RSA_DECRYPT_OAEP_3072_SHA1", "SHA1" },
+        { "RSA_DECRYPT_OAEP_4096_SHA1", "SHA1" }
+    };
+
+    public static string GetHashingAlgorithm(RSAEncryptionPadding encryptionAlgorithm)
+    {
+        if (SupportedEncryptionAlgorithms.TryGetValue(encryptionAlgorithm.ToString(), out string? hashAlgorithm))
+        {
+            return hashAlgorithm;
+        }
+        throw new Exception("Unsupported encryption algorithm is used for the provided key");
+    }
+
     private static byte[] GenerateRandomBytes(int size)
     {
         byte[] bytes = new byte[size];
@@ -184,4 +260,5 @@ public class IntegrationUtils
         writer.Write(data);
     }
 }
+
 
