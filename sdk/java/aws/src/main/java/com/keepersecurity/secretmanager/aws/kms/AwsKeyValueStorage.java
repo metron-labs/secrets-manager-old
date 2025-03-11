@@ -39,7 +39,12 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class AwsKeyValueStorage implements KeyValueStorage {
+
+	   final static Logger logger = LoggerFactory.getLogger(AwsKeyValueStorage.class);
 
 	private String defaultConfigFileLocation = "client-config.json";
 	private String lastSavedConfigHash, updateConfigHash;
@@ -57,6 +62,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 		this.keyId = keyId != null ? keyId : System.getenv("KSM_AZ_KEY_ID");
 
 		kmsClient = new AWSKMSClient(sessionConfig);
+		logger.info("AWS KMS Client initiated.");
 		loadConfig();
 	}
 
@@ -79,7 +85,6 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	 * @param newKeyId
 	 */
 	public void changeKey(String newKeyId) {
-		System.out.println("Change Key initiated");
 		String configJson="";
 		String oldKey = this.keyId;
 		Map<String, Object> oldconfigMap = this.configMap;
@@ -102,10 +107,12 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	 */
 	private void loadConfig() throws Exception {
 		if (!JsonUtil.isValidJsonFile(configFileLocation)) {
+			logger.debug("KSM config file is already encrypted.");
 			String decryptedContent = decryptBuffer(readEncryptedJsonFile());
 			lastSavedConfigHash = calculateMd5(decryptedContent);
 			configMap = JsonUtil.convertToMap(decryptedContent);
 		} else {
+			logger.debug("KSM Config file is plain json.");
 			String configJson = Files.readString(Paths.get(configFileLocation));
 			lastSavedConfigHash = calculateMd5(configJson);
 			configMap = JsonUtil.convertToMap(configJson);
@@ -123,6 +130,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 				save(decryptedContent, updatedConfig);
 			}
 		} catch (Exception e) {
+			logger.error("Exception:"+e.getMessage());
 		}
 	}
 
@@ -139,8 +147,9 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 				}
 				byte[] encryptedData = encryptBuffer(configJson);
 				Files.write(Paths.get(configFileLocation), encryptedData);
+				logger.info("KSM config saved fo file success.");
 			} catch (Exception e) {
-
+				logger.error("Exception:"+e.getMessage());
 			}
 		}
 	}
