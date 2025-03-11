@@ -16,6 +16,9 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.cloud.kms.v1.AsymmetricDecryptResponse;
 import com.google.cloud.kms.v1.CryptoKeyVersion;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
@@ -27,6 +30,8 @@ import com.google.cloud.kms.v1.DecryptRequest;
 import com.google.cloud.kms.v1.EncryptRequest;
 
 public class KMSUtils {
+
+	final static Logger logger = LoggerFactory.getLogger(KMSUtils.class);
 
 	private KeyManagementServiceClient kmsClient;
 	private GcpSessionConfig sessionConfig;
@@ -50,7 +55,7 @@ public class KMSUtils {
 			kmsClient = KeyManagementServiceClient.create();
 			this.sessionConfig = sessionConfig;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("Exception: "+e.getMessage());
 		}
 	}
 	
@@ -69,7 +74,7 @@ public class KMSUtils {
 	 * @throws Exception
 	 */
 	public byte[] encryptAsymmetricRsa(byte[] text) throws Exception {
-		System.out.println("Encrypt Using Asymmetric Key");
+		logger.debug("Encrypt Using Asymmetric Key");
 
 		// Perform encryption and get the ciphertext
 		CryptoKeyVersionName keyVersionName = getCryptoKeyVersionName();
@@ -119,7 +124,7 @@ public class KMSUtils {
 	 * @throws Exception
 	 */
 	public byte[] decryptAsymmetricRsa(byte[] ciphertext) throws Exception {
-		System.out.println("Decrypt Using Asymmetric Key");
+		logger.debug("Decrypt Using Asymmetric Key");
 		// Perform encryption and get the ciphertext
 		CryptoKeyVersionName keyVersionName =getCryptoKeyVersionName();
 
@@ -132,7 +137,7 @@ public class KMSUtils {
 	}
 
 	public ByteString encryptSymmetric(String plaintext) throws Exception {
-		System.out.println("Encrypt Using Symmetric Key");
+		logger.debug("Encrypt Using Symmetric Key");
 		// Convert plaintext to ByteString
 		ByteString plaintextByteString = ByteString.copyFrom(plaintext, StandardCharsets.UTF_8);
 
@@ -146,7 +151,7 @@ public class KMSUtils {
 	}
 
 	public String decryptSymmetric(ByteString ciphertext) throws Exception {
-		System.out.println("Decrypt Using Symmetric Key");
+		logger.debug("Decrypt Using Symmetric Key");
 		// Decrypt the data
 		DecryptRequest decryptRequest = DecryptRequest.newBuilder().setName(getFullName()).setCiphertext(ciphertext)
 				.build();
@@ -164,7 +169,7 @@ public class KMSUtils {
 	public boolean isSymmetricKey() {
 		// Fetch the key version (use the primary version of the key)
 		CryptoKeyVersionAlgorithm algorithms = getCryptoKeyVersionAlgorithm();
-		System.out.println("Encryption Algorith :::"+ algorithms.name());
+		logger.debug("Encryption Algorith :::"+ algorithms.name());
 			if (algorithms.name().contains("SYMMETRIC"))
 				return true;
 			

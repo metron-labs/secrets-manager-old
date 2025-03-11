@@ -38,8 +38,13 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 public class GcpKeyValueStorage implements KeyValueStorage {
 
+	final static Logger logger = LoggerFactory.getLogger(GcpKeyValueStorage.class);
 	private String defaultConfigFileLocation = "client-config.json";
 	private String lastSavedConfigHash, updateConfigHash;
 	private String configFileLocation;
@@ -52,6 +57,7 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 				: System.getenv("KSM_CONFIG_FILE") != null ? System.getenv("KSM_CONFIG_FILE")
 						: this.defaultConfigFileLocation;
 		kmsClient = new KMSUtils(sessionConfig);
+		logger.info("GCP Key Management Service Client initiated.");
 		loadConfig();
 	}
 
@@ -69,23 +75,27 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 		return storage;
 	}
 	
+	/**
+	 * Change key method used to re-encrypt the config with new Key 
+	 * @param newKeyId
+	 */
 	public void changeKey(String newKeyId) {
-		System.out.println("Change Key initiated");
+		logger.info("Change Key initiated");
 		String oldKey = kmsClient.getKeyId();
 		String configJson="";
 		Map<String, Object> oldconfigMap = this.configMap;
 		try {
 			kmsClient.setKeyId(newKeyId);
 			save(configJson, configMap);
-			System.out.println("Encrypted using newKeyId");
+			logger.info("Encrypted using newKeyId");
 		}catch(Exception e) {
 			kmsClient.setKeyId(oldKey);
+			logger.error("Exception: "+e.getMessage());
 		}
-		
 	}
 
 	/**
-	 * 
+	 * Load the condif from KSM json file
 	 * @throws Exception
 	 */
 	private void loadConfig() throws Exception {
@@ -111,6 +121,7 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 				save(decryptedContent, updatedConfig);
 			}
 		} catch (Exception e) {
+			logger.error("Exception: "+e.getMessage());
 		}
 	}
 
@@ -127,8 +138,9 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 				}
 				byte[] encryptedData = encryptBuffer(configJson);
 				Files.write(Paths.get(configFileLocation), encryptedData);
+				logger.info("KSM config saved into file success.");
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error("Exception: "+e.getMessage());
 			}
 		}
 	}
@@ -147,10 +159,13 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 				 Path path = Paths.get(configFileLocation);
 					if (Files.exists(path)) 
 						Files.write(path, decryptedContent.getBytes(StandardCharsets.UTF_8));
+					logger.info("Decrypted KSM config saved into file success.");
 			 }
 			 return decryptedContent;
-		} else 
+		} else {
+			logger.info("KSM config is plain json only.");
 			return null;
+		}
 	}
 	
 	private byte[] readEncryptedJsonFile() throws Exception {
@@ -314,6 +329,7 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 		try {
 			return JsonUtil.convertToString(configMap);
 		} catch (JsonProcessingException e) {
+			logger.error("Exception: "+e.getMessage());
 		}
 		return null;
 
