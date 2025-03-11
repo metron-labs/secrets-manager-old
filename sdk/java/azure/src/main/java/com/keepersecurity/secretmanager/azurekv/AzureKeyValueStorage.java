@@ -11,7 +11,6 @@ import com.azure.security.keyvault.keys.cryptography.models.UnwrapResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.keepersecurity.secretsManager.core.KeyValueStorage;
 
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,6 +28,8 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -50,6 +51,8 @@ import java.security.spec.InvalidKeySpecException;
 
 public class AzureKeyValueStorage implements KeyValueStorage{
 
+	final static Logger logger = LoggerFactory.getLogger(AzureKeyValueStorage.class);
+
 	private String defaultConfigFileLocation = "client-config.json";
 	public KeyClient keyClient;
 	public String keyId;
@@ -59,7 +62,6 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 	private String configFileLocation;
 	Map<String, Object> configMap;
 
-	private static final ClientLogger LOGGER = new ClientLogger(AzureKeyValueStorage.class);
 	
 	private AzureKeyValueStorage() {}
 	
@@ -82,6 +84,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 		this.keyId = keyId != null ? keyId : System.getenv(Constants.KSM_AZ_KEY_ID);
 		tokencredential = getSecretCredential(azSessionConfig);
 		cryptoClient = getCryptoClient(this.keyId);
+		logger.info("Azure Crypto Client initiated.");
 		loadConfig();
 	}
 
@@ -159,7 +162,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 				
 			}
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage());
+			logger.error("Exception: "+e.getMessage());
 		}
 	}
 	
@@ -176,8 +179,9 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 				}
 				byte[] encryptedData = encryptBuffer(configJson);
 				Files.write(Paths.get(configFileLocation), encryptedData);
+				logger.info("KSM config saved fo file success.");
 			} catch (Exception e) {
-
+				logger.error("Exception: "+e.getMessage());
 			}
 		}
 	}
@@ -208,7 +212,6 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 			createConfigFileIfMissing();
 		}
 		return Files.readAllBytes(path);
-		
 	}
 
 	/**
@@ -372,7 +375,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 		try {
 			return JsonUtils.convertToString(configMap); 
 		} catch (JsonProcessingException e) {
-			LOGGER.error(e.getMessage());
+			logger.error("Exception: "+e.getMessage());
 		}
 		return null;
 

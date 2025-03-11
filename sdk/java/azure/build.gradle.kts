@@ -29,7 +29,12 @@ dependencies {
     implementation("com.azure:azure-security-keyvault-keys:4.9.2")
     implementation("com.google.code.gson:gson:2.12.1")
     
-    
+    implementation("org.slf4j:slf4j-api:1.7.32"){
+        exclude("org.slf4j:slf4j-log4j12")
+    }
+	implementation("ch.qos.logback:logback-classic:1.2.6")
+	implementation("ch.qos.logback:logback-core:1.2.6")
+	
     testImplementation("org.bouncycastle:bc-fips:2.0.0")
 }
 
