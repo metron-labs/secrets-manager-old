@@ -63,12 +63,12 @@ public class Options
     public bool IsAsymmetric { get; set; }
     public KeyManagementServiceClient CryptoClient { get; set; }
     public GCPKeyConfig KeyProperties { get; set; }
-    public System.Security.Cryptography.RSAEncryptionPadding EncryptionAlgorithm { get; set; }
+    public string EncryptionAlgorithm { get; set; }
 }
 
 public class BufferOptions : Options
 {
-    public string KeyType { get; set; }
+    public string KeyPurpose { get; set; }
 }
 
 public class EncryptBufferOptions : BufferOptions

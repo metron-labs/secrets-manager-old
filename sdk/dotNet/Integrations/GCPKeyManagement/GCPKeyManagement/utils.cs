@@ -10,12 +10,12 @@ using System.Text;
 using System.IO;
 using System.Linq;
 
-public class KMSUtils
+public class IntegrationUtils
 {
     private const int AesKeySize = IntegrationConstants.AES_KEY_SIZE; // 256-bit key
     private const int NonceSize = IntegrationConstants.NONCE_SIZE;  // AES-GCM nonce size
 
-    public static async Task<byte[]> EncryptBufferAsync( EncryptBufferOptions options, ILogger logger)
+    public static async Task<byte[]> EncryptBufferAsync(EncryptBufferOptions options, ILogger logger)
     {
         try
         {
@@ -68,7 +68,7 @@ public class KMSUtils
         }
     }
 
-    public static async Task<string> DecryptBufferAsync( DecryptBufferOptions options, ILogger logger)
+    public static async Task<string> DecryptBufferAsync(DecryptBufferOptions options, ILogger logger)
     {
         try
         {
@@ -109,12 +109,13 @@ public class KMSUtils
 
 
             // Step 3: Unwrap AES key using GCPKeyManagement Key
-            var decryptData = new DecryptOptions{
+            var decryptData = new DecryptOptions
+            {
                 KeyProperties = options.KeyProperties,
                 CipherText = encryptedKey,
                 CryptoClient = options.CryptoClient,
                 IsAsymmetric = options.IsAsymmetric,
-                EncryptionAlgorithm = options.EncryptionAlgorithm ,
+                EncryptionAlgorithm = options.EncryptionAlgorithm,
             };
 
             var decryptedKey = await DecryptData(decryptData);
@@ -196,7 +197,7 @@ public class KMSUtils
         {
             var request = new AsymmetricDecryptRequest
             {
-                Name =options.KeyProperties.ToResourceName(), 
+                Name = options.KeyProperties.ToResourceName(),
                 Ciphertext = ByteString.CopyFrom(options.CipherText),
             };
             var response = await options.CryptoClient.AsymmetricDecryptAsync(request);
@@ -238,9 +239,15 @@ public class KMSUtils
         { "RSA_DECRYPT_OAEP_4096_SHA1", "SHA1" }
     };
 
-    public static string GetHashingAlgorithm(RSAEncryptionPadding encryptionAlgorithm)
+    public static string GetHashingAlgorithm(string encryptionAlgorithm)
     {
-        if (SupportedEncryptionAlgorithms.TryGetValue(encryptionAlgorithm.ToString(), out string? hashAlgorithm))
+        RSAEncryptionPadding padding = encryptionAlgorithm switch
+        {
+            "RSAES_OAEP_SHA_256" => RSAEncryptionPadding.OaepSHA256,
+            "RSAES_OAEP_SHA_1" => RSAEncryptionPadding.OaepSHA1,
+            _ => throw new ArgumentException("Unsupported encryption algorithm", nameof(encryptionAlgorithm)),
+        };
+        if (SupportedEncryptionAlgorithms.TryGetValue(padding.ToString(), out string? hashAlgorithm))
         {
             return hashAlgorithm;
         }
@@ -260,5 +267,4 @@ public class KMSUtils
         writer.Write(data);
     }
 }
-
 

@@ -23,7 +23,7 @@ public class GCPKMSClient
     /// Creates a new GCP KMS client using the specified credentials file.
     /// </summary>
     /// <param name="credentialsKeyFilePath">The file path to the JSON key file containing service account credentials.</param>
-    /// <returns>The GCPKSMClient instance.</returns>
+    /// <returns>The GCPKMSClient instance.</returns>
     public GCPKMSClient CreateClientFromCredentialsFile(string credentialsKeyFilePath)
     {
         if (!File.Exists(credentialsKeyFilePath))
@@ -47,7 +47,7 @@ public class GCPKMSClient
     /// </summary>
     /// <param name="clientEmail">The email address associated with the service account.</param>
     /// <param name="privateKey">The private key corresponding to the service account.</param>
-    /// <returns>The GCPKSMClient instance.</returns>
+    /// <returns>The GCPKMSClient instance.</returns>
     public GCPKMSClient CreateClientUsingCredentials(string clientEmail, string privateKey)
     {
         var credential = GoogleCredential.FromJson($@"

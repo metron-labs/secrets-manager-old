@@ -10,11 +10,11 @@ public class GCPKeyConfig
     public string Location { get; }
 
     public GCPKeyConfig(
-        string? resourceName = null, 
-        string? keyName = null, 
-        string? keyRing = null, 
-        string? project = null, 
-        string? location = null, 
+        string? resourceName = null,
+        string? keyName = null,
+        string? keyRing = null,
+        string? project = null,
+        string? location = null,
         string? keyVersion = null)
     {
         if (string.IsNullOrEmpty(resourceName))
