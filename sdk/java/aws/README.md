@@ -39,6 +39,7 @@ dependencies {
     }
 	implementation("ch.qos.logback:logback-classic:1.2.6")
 	implementation("ch.qos.logback:logback-core:1.2.6")
+	implementation("org.bouncycastle:bc-fips:1.0.2.4")
 }
 ```
 
@@ -113,6 +114,13 @@ dependencies {
 			<scope>compile</scope>
 		</dependency>
 		
+		<!-- bc-fips -->
+		<dependency>
+    		<groupId>org.bouncycastle</groupId>
+    		<artifactId>bc-fips</artifactId>
+    		<version>1.0.2.4</version>
+		</dependency>
+		
 
 ```
    </details> 
@@ -141,14 +149,10 @@ Initializes AwsKeyValueStorage
    import com.keepersecurity.secretmanager.aws.kms.AwsSessionConfig;
    import software.amazon.awssdk.regions.Region;
     
-    String keyId = "<>";
-    String awsAccessKeyId = "<AWS Access Id>";
-	String awsSecretAccessKey = "<AWS Access Secret Key>";
-	Region region = <Region>;
-	
+     String awsAccessKeyId = "<AWS Access Id>";
+	 String awsSecretAccessKey = "<AWS Access Secret Key>";
+	 Region region = <Region>;
     AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
-    String fileLocation="client-config.json";
-    AwsKeyValueStorage awskvstorage =  AwsKeyValueStorage.getInternalStorage(keyId, fileLocation, sessionConfig);
 ```
 
 An access key using the `AwsSessionConfig` data class and providing `accessKey`,`accessSecret` and `region` variables.
@@ -164,25 +168,38 @@ Now that the AWS connection has been configured, you need to tell the Secrets Ma
 
 To do this, use AwsKeyValueStorage as your Secrets Manager storage in the SecretsManager constructor.
 
-The storage will require an AWS Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by AWS KMS.
+The storage will require an AWS Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by AWS KMS. Below is the sample Test class
 
 ```
-		import com.keepersecurity.secretmanager.aws.kms.AwsKeyValueStorage;
-		import com.keepersecurity.secretmanager.aws.kms.AwsSessionConfig;
-		import com.keepersecurity.secretsManager.core.SecretsManager;
-		import com.keepersecurity.secretsManager.core.SecretsManagerOptions;		
-		
-	    String configFileLocation = "<KSM-Config.json>";
-	    String keyId = "<AWS Key Id>";
-		try{
-		  	// created instance AzureSessionConfig with azure configuration details mentioned above
-		  	
-	  		AwsKeyValueStorage awskvstorage =  AwsKeyValueStorage.getInternalStorage(keyId, fileLocation, sessionConfig);
-			Security.addProvider(BouncyCastleFipsProvider())
-			SecretsManagerOptions OPTIONS = new SecretsManagerOptions(awskvstorage);
-	    	 //getSecrets(OPTIONS)
-		}catch (Exception e) {
-  			  System.out.println(e.getMessage());
- 		}
+import com.keepersecurity.secretmanager.aws.kms.AwsKeyValueStorage;
+import com.keepersecurity.secretmanager.aws.kms.AwsSessionConfig;
+import software.amazon.awssdk.regions.Region;
+import com.keepersecurity.secretsManager.core.InMemoryStorage;
+import com.keepersecurity.secretsManager.core.SecretsManager;
+import com.keepersecurity.secretsManager.core.SecretsManagerOptions;		
+import java.security.Security;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+
+		class Test{
+		   public static void main(String args[]){
+			    String configFileLocation = "<KSM-Config.json>";
+			    String keyId = "<AWS Key Id>";
+				try{
+				  
+				    String awsAccessKeyId = "<AWS Access Id>";
+				    String awsSecretAccessKey = "<AWS Access Secret Key>";
+				    Region region = <Region>;
+		    
+				    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
+			  		AwsKeyValueStorage awskvstorage =  AwsKeyValueStorage.getInternalStorage(keyId, configFileLocation, sessionConfig);
+					Security.addProvider(new BouncyCastleFipsProvider());
+					InMemoryStorage storage = new InMemoryStorage(awskvstorage.toString());
+					SecretsManagerOptions OPTIONS = new SecretsManagerOptions(storage);
+			    	 //getSecrets(OPTIONS);
+				}catch (Exception e) {
+		  			  System.out.println(e.getMessage());
+		 		}
+	 	  }
+	 	}
 			
 ```
