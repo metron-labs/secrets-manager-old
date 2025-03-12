@@ -16,7 +16,7 @@ public class GCPKMSClient
     /// </summary>
     public GCPKMSClient()
     {
-        _kmsClient = KeyManagementServiceClient.Create();
+        _kmsClient = null;
     }
 
     /// <summary>

@@ -249,8 +249,8 @@ namespace GCPKeyManagement
 
                 encryptionAlgorithm = key.VersionTemplate?.Algorithm.ToString() ?? string.Empty;
                 string keyPurposeDetails = key.Purpose.ToString();
-
-                if (Array.IndexOf(IntegrationConstants.SupportedKeySpecs, keyPurposeDetails) < 0)
+                var exists = Array.IndexOf(IntegrationConstants.SupportedKeySpecs, keyPurposeDetails);
+                if (exists < 0)
                 {
                     logger.LogError("Unsupported Key Spec for GCP KMS Storage");
                     throw new InvalidOperationException("Unsupported Key Spec for GCP KMS Storage");

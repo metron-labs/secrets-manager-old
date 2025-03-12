@@ -1,4 +1,7 @@
 using Google.Cloud.Kms.V1;
+using System;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 
 public static class IntegrationConstants
@@ -6,10 +9,8 @@ public static class IntegrationConstants
     // Supported Key Specs
     public static readonly string[] SupportedKeySpecs = 
     {
-        KeySpecEnum.RSA_2048,
-        KeySpecEnum.RSA_4096,
-        KeySpecEnum.RSA_3072,
-        KeySpecEnum.SYMMETRIC_DEFAULT
+        KeyPurposeHelper.GetEnumMemberValue(KeyPurpose.RAW_ENCRYPT_DECRYPT),
+        KeyPurposeHelper.GetEnumMemberValue(KeyPurpose.ASYMMETRIC_DECRYPT)
     };
 
     public static readonly byte[] BLOB_HEADER = { 0xFF, 0xFF }; // Encrypted BLOB Header: U+FFFF is a non-utf-8-character
@@ -29,32 +30,24 @@ public static class IntegrationConstants
     };
 }
 
-public static class KeySpecEnum
-{
-    public const string RSA_2048 = "RSA_2048";
-    public const string RSA_4096 = "RSA_4096";
-    public const string RSA_3072 = "RSA_3072";
-    public const string SYMMETRIC_DEFAULT = "SYMMETRIC_DEFAULT";
-}
-
 public enum KeyPurpose
 {
-    [EnumMember(Value = "ENCRYPT_DECRYPT")]
+    [EnumMember(Value = "EncryptDecrypt")]
     ENCRYPT_DECRYPT,
 
-    [EnumMember(Value = "ASYMMETRIC_DECRYPT")]
+    [EnumMember(Value = "AsymmetricDecrypt")]
     ASYMMETRIC_DECRYPT,
 
-    [EnumMember(Value = "CRYPTO_KEY_PURPOSE_UNSPECIFIED")]
+    [EnumMember(Value = "Unspecified")]
     CRYPTO_KEY_PURPOSE_UNSPECIFIED,
 
-    [EnumMember(Value = "ASYMMETRIC_SIGN")]
+    [EnumMember(Value = "AsymmetricSign")]
     ASYMMETRIC_SIGN,
 
-    [EnumMember(Value = "RAW_ENCRYPT_DECRYPT")]
+    [EnumMember(Value = "RawEncryptDecrypt")]
     RAW_ENCRYPT_DECRYPT,
 
-    [EnumMember(Value = "MAC")]
+    [EnumMember(Value = "Mac")]
     MAC
 }
 
@@ -89,4 +82,15 @@ public class EncryptOptions : Options
 public class DecryptOptions : Options
 {
     public byte[] CipherText { get; set; }
+}
+
+public static class KeyPurposeHelper
+{
+    public static string GetEnumMemberValue(Enum enumValue)
+    {
+        var type = enumValue.GetType();
+        var member = type.GetMember(enumValue.ToString()).FirstOrDefault();
+        var attribute = member?.GetCustomAttribute<EnumMemberAttribute>();
+        return attribute?.Value ?? enumValue.ToString();
+    }
 }

@@ -165,7 +165,7 @@ public class IntegrationUtils
         using RSA rsa = RSA.Create();
         rsa.ImportSubjectPublicKeyInfo(pem, out _);
 
-        RSAEncryptionPadding padding = GetPadding(GetHashingAlgorithm(options.EncryptionAlgorithm));
+        RSAEncryptionPadding padding = GetPadding(options.EncryptionAlgorithm);
         byte[] ciphertext = rsa.Encrypt(options.Message, padding);
 
         return ciphertext;
@@ -220,39 +220,25 @@ public class IntegrationUtils
 
     private static RSAEncryptionPadding GetPadding(string encryptionAlgorithm)
     {
-        return encryptionAlgorithm switch
-        {
-            "RSAES_OAEP_SHA_256" => RSAEncryptionPadding.OaepSHA256,
-            "RSAES_OAEP_SHA_1" => RSAEncryptionPadding.OaepSHA1,
-            _ => throw new ArgumentException("Unsupported encryption algorithm", nameof(encryptionAlgorithm)),
-        };
-    }
-
-    private static readonly System.Collections.Generic.Dictionary<string, string> SupportedEncryptionAlgorithms = new()
-    {
-        { "RSA_DECRYPT_OAEP_2048_SHA256", "SHA256" },
-        { "RSA_DECRYPT_OAEP_3072_SHA256", "SHA256" },
-        { "RSA_DECRYPT_OAEP_4096_SHA256", "SHA256" },
-        { "RSA_DECRYPT_OAEP_4096_SHA512", "SHA512" },
-        { "RSA_DECRYPT_OAEP_2048_SHA1", "SHA1" },
-        { "RSA_DECRYPT_OAEP_3072_SHA1", "SHA1" },
-        { "RSA_DECRYPT_OAEP_4096_SHA1", "SHA1" }
-    };
-
-    public static string GetHashingAlgorithm(string encryptionAlgorithm)
-    {
-        RSAEncryptionPadding padding = encryptionAlgorithm switch
-        {
-            "RSAES_OAEP_SHA_256" => RSAEncryptionPadding.OaepSHA256,
-            "RSAES_OAEP_SHA_1" => RSAEncryptionPadding.OaepSHA1,
-            _ => throw new ArgumentException("Unsupported encryption algorithm", nameof(encryptionAlgorithm)),
-        };
-        if (SupportedEncryptionAlgorithms.TryGetValue(padding.ToString(), out string? hashAlgorithm))
+        if (SupportedEncryptionAlgorithms.TryGetValue(encryptionAlgorithm, out RSAEncryptionPadding? hashAlgorithm))
         {
             return hashAlgorithm;
         }
         throw new Exception("Unsupported encryption algorithm is used for the provided key");
+        
     }
+
+    private static readonly System.Collections.Generic.Dictionary<string, RSAEncryptionPadding> SupportedEncryptionAlgorithms = new()
+    {
+        { "RsaDecryptOaep2048Sha256", RSAEncryptionPadding.OaepSHA256 },
+        { "RsaDecryptOaep3072Sha256", RSAEncryptionPadding.OaepSHA256},
+        { "RsaDecryptOaep4096Sha256", RSAEncryptionPadding.OaepSHA256},
+        { "RsaDecryptOaep4096Sha512", RSAEncryptionPadding.OaepSHA512 },
+        { "RsaDecryptOaep2048Sha1", RSAEncryptionPadding.OaepSHA1 },
+        { "RsaDecryptOaep3072Sha1", RSAEncryptionPadding.OaepSHA1 },
+        { "RsaDecryptOaep4096Sha1", RSAEncryptionPadding.OaepSHA1 }
+    };
+
 
     private static byte[] GenerateRandomBytes(int size)
     {
