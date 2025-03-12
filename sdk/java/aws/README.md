@@ -135,7 +135,7 @@ Configuration variables can be provided as
 
 See the AWS documentation for more information on setting up an AWS session: https://docs.aws.amazon.com/cli/latest/reference/configure/
 
-Alternatively, configuration variables can be provided explicitly as an access key using the AwsSessionConfig data class and providing  `awsAccessKeyId` , `awsSecretAccessKey` and  `region` variables.
+Alternatively, configuration variables can be provided explicitly as an access key using the AwsSessionConfig data class and providing `awsAccessKeyId`,  `awsSecretAccessKey` and  `region` variables.
 
 You will need an AWS Access Key to use the AWS KMS integration.
 
@@ -155,7 +155,7 @@ Initializes AwsKeyValueStorage
     AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
 ```
 
-An access key using the `AwsSessionConfig` data class and providing `accessKey`,`accessSecret` and `region` variables.
+An access key using the `AwsSessionConfig` data class and providing `awsAccessKeyId`,`awsSecretAccessKey` and `region` variables.
 
 You will need an Azure App directory App to use the Azure Key Vault integration.
 
@@ -189,11 +189,13 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 				    String awsAccessKeyId = "<AWS Access Id>";
 				    String awsSecretAccessKey = "<AWS Access Secret Key>";
 				    Region region = <Region>;
-		    
+		    		//set AWS configuration	
 				    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
+				    //Get Storage 
 			  		AwsKeyValueStorage awskvstorage =  AwsKeyValueStorage.getInternalStorage(keyId, configFileLocation, sessionConfig);
 					Security.addProvider(new BouncyCastleFipsProvider());
 					InMemoryStorage storage = new InMemoryStorage(awskvstorage.toString());
+					//get secrets
 					SecretsManagerOptions OPTIONS = new SecretsManagerOptions(storage);
 			    	 //getSecrets(OPTIONS);
 				}catch (Exception e) {
