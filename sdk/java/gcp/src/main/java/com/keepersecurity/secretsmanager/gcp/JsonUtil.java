@@ -30,7 +30,7 @@ public class JsonUtil {
 			JsonElement jsonElement = JsonParser.parseReader(reader);
 			return jsonElement != null;
 		} catch (IOException | JsonSyntaxException e) {
-			logger.error("Exception: "+e.getMessage());
+			logger.debug(e.getMessage());
 		} 
 		return false;
 	}
@@ -46,7 +46,7 @@ public class JsonUtil {
 			JsonElement jsonElement = JsonParser.parseString(jsonContent);
 			return jsonElement != null;
 		} catch (JsonSyntaxException e) {
-			logger.error("Exception: "+e.getMessage());
+			logger.debug(e.getMessage());
 		}
 		return false;
 	}

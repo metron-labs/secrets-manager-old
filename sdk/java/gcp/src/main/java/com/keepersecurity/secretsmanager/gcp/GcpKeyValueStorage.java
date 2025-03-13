@@ -14,6 +14,7 @@ package com.keepersecurity.secretsmanager.gcp;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +42,6 @@ import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class GcpKeyValueStorage implements KeyValueStorage {
 
 	final static Logger logger = LoggerFactory.getLogger(GcpKeyValueStorage.class);
@@ -52,7 +52,7 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 
 	private KMSUtils kmsClient;
 
-	private GcpKeyValueStorage(String configFileLocation, GcpSessionConfig sessionConfig) throws Exception {
+	public GcpKeyValueStorage(String configFileLocation, GcpSessionConfig sessionConfig) throws Exception {
 		this.configFileLocation = configFileLocation != null ? configFileLocation
 				: System.getenv("KSM_CONFIG_FILE") != null ? System.getenv("KSM_CONFIG_FILE")
 						: this.defaultConfigFileLocation;
@@ -74,41 +74,54 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 		GcpKeyValueStorage storage = new GcpKeyValueStorage(configFileLocation, sessionConfig);
 		return storage;
 	}
-	
+
 	/**
-	 * Change key method used to re-encrypt the config with new Key 
+	 * Change key method used to re-encrypt the config with new Key
+	 * 
 	 * @param newKeyId
 	 */
-	public void changeKey(String newKeyId) {
+	public boolean changeKey(String newKeyId) {
 		logger.info("Change Key initiated");
 		String oldKey = kmsClient.getKeyId();
-		String configJson="";
+		String configJson = "";
 		Map<String, Object> oldconfigMap = this.configMap;
 		try {
 			kmsClient.setKeyId(newKeyId);
 			save(configJson, configMap);
-			logger.info("Encrypted using newKeyId");
-		}catch(Exception e) {
+			logger.info("Encrypted using newKeyId success.");
+			return true;
+		} catch (Exception e) {
 			kmsClient.setKeyId(oldKey);
-			logger.error("Exception: "+e.getMessage());
+			logger.error("Exception: " + e.getMessage());
 		}
+		return false;
 	}
 
 	/**
 	 * Load the condif from KSM json file
+	 * 
 	 * @throws Exception
 	 */
 	private void loadConfig() throws Exception {
+		File file = new File(configFileLocation);
+		if (file.exists() && file.length() == 0) {
+			logger.info("File is empty");
+			return;
+		}
 		if (!JsonUtil.isValidJsonFile(configFileLocation)) {
+			logger.debug("loadConfig::File is encryped.");
 			String decryptedContent = decryptBuffer(readEncryptedJsonFile());
 			lastSavedConfigHash = calculateMd5(decryptedContent);
 			configMap = JsonUtil.convertToMap(decryptedContent);
+			logger.debug("loadConfig::configMap loaded from file.");
 		} else {
+			logger.debug("loadConfig::File is plain json.");
 			String configJson = Files.readString(Paths.get(configFileLocation));
 			lastSavedConfigHash = calculateMd5(configJson);
 			configMap = JsonUtil.convertToMap(configJson);
 			saveConfig(configMap);
 		}
+		logger.info("KSM config saved into file success.");
 	}
 
 	private void saveConfig(Map<String, Object> updatedConfig) {
@@ -121,7 +134,7 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 				save(decryptedContent, updatedConfig);
 			}
 		} catch (Exception e) {
-			logger.error("Exception: "+e.getMessage());
+			logger.error("Exception: " + e.getMessage());
 		}
 	}
 
@@ -137,37 +150,38 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 					configMap = JsonUtil.convertToMap(configJson);
 				}
 				byte[] encryptedData = encryptBuffer(configJson);
+				logger.debug("Encrypted json content.");
 				Files.write(Paths.get(configFileLocation), encryptedData);
-				logger.info("KSM config saved into file success.");
 			} catch (Exception e) {
-				logger.error("Exception: "+e.getMessage());
+				logger.error("Exception: " + e.getMessage());
 			}
 		}
 	}
 
 	/**
 	 * Decrypt the encrypted config, autosave=true/false
+	 * 
 	 * @param autosave
 	 * @return
 	 * @throws Exception
 	 */
 	public String decryptConfig(boolean autosave) throws Exception {
-		String decryptedContent=null;
+		String decryptedContent = null;
 		if (!JsonUtil.isValidJsonFile(configFileLocation)) {
-			 decryptedContent = decryptBuffer(readEncryptedJsonFile());
-			 if(autosave) {
-				 Path path = Paths.get(configFileLocation);
-					if (Files.exists(path)) 
-						Files.write(path, decryptedContent.getBytes(StandardCharsets.UTF_8));
-					logger.info("Decrypted KSM config saved into file success.");
-			 }
-			 return decryptedContent;
+			decryptedContent = decryptBuffer(readEncryptedJsonFile());
+			if (autosave) {
+				Path path = Paths.get(configFileLocation);
+				if (Files.exists(path))
+					Files.write(path, decryptedContent.getBytes(StandardCharsets.UTF_8));
+				logger.info("Decrypted KSM config saved into file success.");
+			}
+			return decryptedContent;
 		} else {
 			logger.info("KSM config is plain json only.");
 			return null;
 		}
 	}
-	
+
 	private byte[] readEncryptedJsonFile() throws Exception {
 		Path path = Paths.get(configFileLocation);
 		if (!Files.exists(path)) {
@@ -295,44 +309,92 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 		return Base64.getEncoder().encodeToString(digest);
 	}
 
+	private byte[] base64ToBytes(String base64String) {
+		if (base64String == null || base64String.isEmpty()) {
+			return null; 
+		}
+		return Base64.getDecoder().decode(base64String);
+	}
+
+	private String bytesToBase64(byte[] data) {
+		return Base64.getEncoder().encodeToString(data);
+	}
+
 	@Override
 	public void delete(String key) {
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
 		configMap.remove(key);
 		saveConfig(configMap);
 	}
 
 	@Override
 	public byte[] getBytes(String key) {
-		return configMap.get(key).toString().getBytes();
+		if (configMap.get(key) == null)
+			return null;
+		return base64ToBytes(configMap.get(key).toString());
 	}
 
 	@Override
 	public String getString(String key) {
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
+		if (configMap.get(key) == null)
+			return null;
 		return configMap.get(key).toString();
 	}
 
 	@Override
 	public void saveBytes(String key, byte[] value) {
-		configMap.put(key, new String(value, StandardCharsets.UTF_8));
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
+		configMap.put(key, bytesToBase64(value));
 		saveConfig(configMap);
-
 	}
 
 	@Override
 	public void saveString(String key, String value) {
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
 		configMap.put(key, value);
 		saveConfig(configMap);
 	}
 
 	@Override
 	public String toString() {
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
 		try {
 			return JsonUtil.convertToString(configMap);
 		} catch (JsonProcessingException e) {
-			logger.error("Exception: "+e.getMessage());
+			logger.error("Exception: " + e.getMessage());
 		}
 		return null;
-
 	}
 
 }
