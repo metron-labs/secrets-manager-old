@@ -35,7 +35,7 @@ dependencies {
 	implementation("ch.qos.logback:logback-classic:1.2.6")
 	implementation("ch.qos.logback:logback-core:1.2.6")
 	
-    testImplementation("org.bouncycastle:bc-fips:2.0.0")
+    implementation("org.bouncycastle:bc-fips:1.0.2.4")
 }
 
 

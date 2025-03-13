@@ -1,7 +1,6 @@
 package com.keepersecurity.secretmanager.azurekv;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.util.logging.ClientLogger;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.security.keyvault.keys.KeyClient;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
@@ -13,6 +12,7 @@ import com.keepersecurity.secretsManager.core.KeyValueStorage;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.crypto.Cipher;
@@ -63,8 +64,6 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 	Map<String, Object> configMap;
 
 	
-	private AzureKeyValueStorage() {}
-	
 	/**
 	 * @param keyId URI of the master key - if missing read from env KSM_AZ_KEY_ID, keyId URI may also include version in case key has auto rotate enabled
 	 * ex. keyId = "https://<your vault>.vault.azure.net/keys/<key name>/fe4fdcab688c479a9aa80f01ffeac26" The master key needs WrapKey, UnwrapKey privileges
@@ -74,14 +73,13 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 	 * For more details
 	 *  https://learn.microsoft.com/en-us/dotnet/api/azure.identity.environmentcredential
 	 */
-	private AzureKeyValueStorage(String keyId, String configFileLocation, AzureSessionConfig azSessionConfig)
+	public AzureKeyValueStorage(String keyId, String configFileLocation, AzureSessionConfig azSessionConfig)
 			throws Exception {
-		
-		
 		this.configFileLocation = configFileLocation != null ? configFileLocation
 				: System.getenv(Constants.KSM_CONFIG_FILE) != null ? System.getenv(Constants.KSM_CONFIG_FILE)
 						: this.defaultConfigFileLocation;
 		this.keyId = keyId != null ? keyId : System.getenv(Constants.KSM_AZ_KEY_ID);
+		this.configMap = new HashMap<>();
 		tokencredential = getSecretCredential(azSessionConfig);
 		cryptoClient = getCryptoClient(this.keyId);
 		logger.info("Azure Crypto Client initiated.");
@@ -111,7 +109,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 	 * Change key method used to re-encrypt the config with new Key 
 	 * @param newKeyId
 	 */
-	public void changeKey(String newKeyId) {
+	public boolean changeKey(String newKeyId) {
 		logger.info("Change Key initiated");
 		String configJson="";
 		String oldKey = this.keyId;
@@ -122,12 +120,14 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 			this.keyId = newKeyId;
 			this.cryptoClient = getCryptoClient(newKeyId);
 			save(configJson, configMap);
-			logger.info("Encrypted using new KeyId");
+			logger.debug("Encrypted using new KeyId");
+			return true; 
 		}catch(Exception e) {
 			this.keyId = oldKey;
 			this.cryptoClient = oldCryptoClient;
 			logger.error("Exception: "+e.getMessage());
 		}
+		return false;
 	}
 	
 	/**
@@ -135,6 +135,11 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 	 * @throws Exception
 	 */
 	private void loadConfig() throws Exception{
+		File file = new File(configFileLocation);
+		if (file.exists() && file.length() == 0) {
+			logger.info("File is empty");
+			return;
+		}
 		if (!JsonUtils.isValidJsonFile(configFileLocation)) {
 			String decryptedContent = decryptBuffer(readEncryptedJsonFile());
 				lastSavedConfigHash = calculateMd5(decryptedContent);
@@ -179,7 +184,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 				}
 				byte[] encryptedData = encryptBuffer(configJson);
 				Files.write(Paths.get(configFileLocation), encryptedData);
-				logger.info("KSM config saved into file success.");
+				logger.debug("KSM config saved into file success.");
 			} catch (Exception e) {
 				logger.error("Exception: "+e.getMessage());
 			}
@@ -205,7 +210,7 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 			 }
 			 return decryptedContent;
 		} else {
-			logger.info("KSM config is plain json only.");
+			logger.debug("KSM config is plain json only.");
 			return null;
 		}
 	}
@@ -345,43 +350,93 @@ public class AzureKeyValueStorage implements KeyValueStorage{
 			return input;
 	}
 
+	
+	private byte[] base64ToBytes(String base64String) {
+		if (base64String == null || base64String.isEmpty()) {
+			return null; 
+		}
+		return Base64.getDecoder().decode(base64String);
+	}
+
+	private String bytesToBase64(byte[] data) {
+		return Base64.getEncoder().encodeToString(data);
+	}
+
 	@Override
 	public void delete(String key) {
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
 		configMap.remove(key);
 		saveConfig(configMap);
 	}
 
 	@Override
 	public byte[] getBytes(String key) {
-		return configMap.get(key).toString().getBytes();
+		if (configMap.get(key) == null)
+			return null;
+		return base64ToBytes(configMap.get(key).toString());
 	}
 
 	@Override
 	public String getString(String key) {
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
+		if (configMap.get(key) == null)
+			return null;
 		return configMap.get(key).toString();
 	}
 
 	@Override
 	public void saveBytes(String key, byte[] value) {
-		configMap.put(key, new String(value, StandardCharsets.UTF_8));
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
+		configMap.put(key, bytesToBase64(value));
 		saveConfig(configMap);
-		
 	}
 
 	@Override
 	public void saveString(String key, String value) {
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
 		configMap.put(key, value);
 		saveConfig(configMap);
 	}
 
 	@Override
 	public String toString() {
+		if (configMap.isEmpty()) {
+			try {
+				loadConfig();
+			} catch (Exception e) {
+				logger.error("Failed to load config file.", e);
+			}
+		}
 		try {
-			return JsonUtils.convertToString(configMap); 
+			return JsonUtils.convertToString(configMap);
 		} catch (JsonProcessingException e) {
-			logger.error("Exception: "+e.getMessage());
+			logger.error("Exception: " + e.getMessage());
 		}
 		return null;
-
 	}
+
 }

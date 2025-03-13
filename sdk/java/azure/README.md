@@ -28,12 +28,18 @@ Prerequisites
 }
 
 dependencies {
-    implementation 'com.keepersecurity.secrets-manager:core:17.0.0+'
-    implementation("com.keepersecurity.secretmanager.azurekv:azure")
-    implementation("org.bouncycastle:bc-fips:1.0.2.4")
+    implementation("com.keepersecurity.secrets-manager:core:17.0.0")
     implementation("com.azure:azure-identity:1.15.0")
     implementation("com.azure:azure-security-keyvault-keys:4.9.2")
-    implementation("com.google.code.gson:gson:2.12.1")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+	implementation("com.fasterxml.jackson.core:jackson-core:2.18.2")
+	implementation("com.google.code.gson:gson:2.12.1")
+    implementation("org.slf4j:slf4j-api:1.7.32"){
+        exclude("org.slf4j:slf4j-log4j12")
+    }
+	implementation("ch.qos.logback:logback-classic:1.2.6")
+	implementation("ch.qos.logback:logback-core:1.2.6")
+	implementation("org.bouncycastle:bc-fips:1.0.2.4")
 }
 ```
 
@@ -41,32 +47,79 @@ dependencies {
   <details> <summary>Maven</summary>
 
  ```
- <dependency>
-  <groupId>com.keepersecurity.secrets-manager</groupId>
-  <artifactId>core</artifactId>
-  <version>[17.0.0,)</version>
-</dependency>
-<dependency>
-    <groupId>org.bouncycastle</groupId>
-    <artifactId>bc-fips</artifactId>
-    <version>1.0.2.4</version>
-</dependency>
-<dependency>
-    <groupId>com.azure</groupId>
-    <artifactId>azure-identity</artifactId>
-    <version>1.15.0</version>
-    <scope>compile</scope>
-</dependency>
-<dependency>
-    <groupId>com.azure</groupId>
-    <artifactId>azure-security-keyvault-keys</artifactId>
-    <version>4.9.2</version>
-</dependency>
-<dependency>
-    <groupId>com.google.code.gson</groupId>
-    <artifactId>gson</artifactId>
-    <version>2.12.1</version>
-</dependency>
+ 		 <!-- KMS-core -->	
+		 <dependency>
+		  <groupId>com.keepersecurity.secrets-manager</groupId>
+		  <artifactId>core</artifactId>
+		  <version>[17.0.0,)</version>
+		</dependency>
+		
+		 <!-- Azure-identity -->
+		<dependency>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-identity</artifactId>
+		    <version>1.15.0</version>
+		    <scope>compile</scope>
+		</dependency>
+		
+		 <!-- Azure-keyvault -->
+		<dependency>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-security-keyvault-keys</artifactId>
+		    <version>4.9.2</version>
+		</dependency>
+
+		<!--gson -->
+		<dependency>
+		    <groupId>com.google.code.gson</groupId>
+		    <artifactId>gson</artifactId>
+		    <version>2.12.1</version>
+		</dependency>
+
+		<!--jackson-core -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>2.18.2</version>
+		</dependency>
+		
+		<!--jackson-databind -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>2.18.2</version>
+		</dependency>
+		
+		<!-- slf4j-api -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.32</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- logback-classic -->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.2.6</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- logback-core -->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-core</artifactId>
+			<version>1.2.6</version>
+			<scope>compile</scope>
+		</dependency>
+		
+		<!-- bc-fips -->
+		<dependency>
+    		<groupId>org.bouncycastle</groupId>
+    		<artifactId>bc-fips</artifactId>
+    		<version>1.0.2.4</version>
+		</dependency>
 
 ```
    </details> 
@@ -115,22 +168,40 @@ To do this, use AzureKeyValueStorage as your Secrets Manager storage in the Secr
 The storage will require an Azure Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by Azure Key Vault.
 
 ```
-		import com.keepersecurity.secretmanager.azurekv.AzureSessionConfig;
-		import com.keepersecurity.secretmanager.azurekv.AzureKeyValueStorage;
-		import com.keepersecurity.secretsManager.core.KeyValueStorage;
-		import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
+import java.security.Security;
+import java.util.List;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+
+import static com.keepersecurity.secretsManager.core.SecretsManager.initializeStorage;
+import com.keepersecurity.secretmanager.azurekv.AzureKeyValueStorage;
+import com.keepersecurity.secretmanager.azurekv.AzureSessionConfig;
+import com.keepersecurity.secretsManager.core.KeeperRecord;
+import com.keepersecurity.secretsManager.core.KeeperRecordData;
+import com.keepersecurity.secretsManager.core.KeeperSecrets;
+import com.keepersecurity.secretsManager.core.SecretsManager;
+import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
+
+public class Test {
+	
+	public static void main(String args[]) throws Exception {
+		String oneTimeToken = "[Keeper Ont time token]";
 		
-	    String configFileLocation = "<KSM-Config.json>";
-	    String keyId = "<Azure RSA Key>";
-		try{
-		  	// created instance AzureSessionConfig with azure configuration details mentioned above
-		  	
-	  		KeyValueStorage STORAGE =  AzureKeyValueStorage.getInternalStorage(keyId, configFileLocation, azureSessionConfig);
-			Security.addProvider(BouncyCastleFipsProvider())
-			SecretsManagerOptions OPTIONS = new SecretsManagerOptions(STORAGE);
-	    	 //getSecrets(OPTIONS)
-		}catch (Exception e) {
-  			  System.out.println(e.getMessage());
- 		}
+		String keyId = "<Azure Key Vault key id>;
+		String configFileLocation="<KMS config json file path>";
+		
+		//Azure key vault config
+		String azTenantId = "<Azure tenant id>";
+		String azClientId= "<Azure Client id>";
+		String azClientSecret ="<Azure Client Secret>";
+		String keyVaultUrl="<Azure Key vault URL>";
+		
+		Security.addProvider(new BouncyCastleFipsProvider()); 
+		AzureSessionConfig azConfig= new AzureSessionConfig(azTenantId, azClientId, azClientSecret, keyVaultUrl);
+		AzureKeyValueStorage azkvstorage =  AzureKeyValueStorage.getInternalStorage(keyId, configFileLocation, azConfig);
+		
+		initializeStorage(azkvstorage, oneTimeToken);
+        SecretsManagerOptions options = new SecretsManagerOptions(azkvstorage);
+        getSecrets(options);
+    }
 			
 ```
