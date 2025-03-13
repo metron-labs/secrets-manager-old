@@ -182,22 +182,20 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 		class Test{
 		   public static void main(String args[]){
-			    String configFileLocation = "<KSM-Config.json>";
-			    String keyId = "<AWS Key Id>";
+		  			String keyId = "<Key ID>";
+				    String awsAccessKeyId = "<AWS Access ID>";
+				    String awsSecretAccessKey = "<AWS Secret>";
+				    String oneTimeToken = "[One Time Token]";
+				    Region region = Region.<cloud-region>;
+				    String configFileLocation = "client_config_test.json";
 				try{
-				  
-				    String awsAccessKeyId = "<AWS Access Id>";
-				    String awsSecretAccessKey = "<AWS Access Secret Key>";
-				    Region region = <Region>;
-		    		//set AWS configuration	
+		    			//set AWS configuration	
 				    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
 				    //Get Storage 
-			  		AwsKeyValueStorage awskvstorage =  AwsKeyValueStorage.getInternalStorage(keyId, configFileLocation, sessionConfig);
-					Security.addProvider(new BouncyCastleFipsProvider());
-					InMemoryStorage storage = new InMemoryStorage(awskvstorage.toString());
-					//get secrets
-					SecretsManagerOptions OPTIONS = new SecretsManagerOptions(storage);
-			    	 //getSecrets(OPTIONS);
+			  		AwsKeyValueStorage awskvstorage =  new AwsKeyValueStorage(keyId, configFileLocation, sessionConfig);
+				 	initializeStorage(awskvstorage, oneTimeToken);
+			         SecretsManagerOptions options = new SecretsManagerOptions(awskvstorage);
+			    	 	//getSecrets(OPTIONS);
 				}catch (Exception e) {
 		  			  System.out.println(e.getMessage());
 		 		}
