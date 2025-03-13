@@ -22,10 +22,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.keepersecurity.secretsManager.core.KeeperRecord;
+import com.keepersecurity.secretsManager.core.KeeperSecrets;
 import com.keepersecurity.secretsManager.core.KeyValueStorage;
+import com.keepersecurity.secretsManager.core.LocalConfigStorage;
+import com.keepersecurity.secretsManager.core.SecretsManager;
+import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
+
+import static com.keepersecurity.secretsManager.core.SecretsManager.initializeStorage;
+
 
 import software.amazon.awssdk.core.SdkBytes;
 
@@ -79,6 +88,18 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 		AwsKeyValueStorage storage = new AwsKeyValueStorage(keyId, configFileLocation, sessionConfig);
 		return storage;
 	}
+	
+	public static AwsKeyValueStorage getInternalStorageWithToken(String keyId, String configFileLocation,
+			AwsSessionConfig sessionConfig, String token) throws Exception {
+		LocalConfigStorage LOCALSTORAGE = new LocalConfigStorage(configFileLocation);
+		initializeStorage(LOCALSTORAGE, token);
+		KeeperSecrets secrets = SecretsManager.getSecrets(new SecretsManagerOptions(LOCALSTORAGE));
+		//get records from secrets
+		List<KeeperRecord> records = secrets.getRecords();
+		
+		return getInternalStorage(keyId, configFileLocation, sessionConfig);
+	}
+	
 	
 	/**
 	 * Change key method used to encrypt config with new key
