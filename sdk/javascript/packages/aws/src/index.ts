@@ -1,3 +1,3 @@
 export {AWSKeyValueStorage} from './AwsKeyValueStore';
 export {AWSSessionConfig} from './AwsSessionConfig';
-export {Logger} from './Logger';
+export {LoggerLogLevelOptions} from './enum';

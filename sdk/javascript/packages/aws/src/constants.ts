@@ -1,4 +1,4 @@
-import { KeySpecEnum } from "./enum";
+import { KeySpecEnum, LoggerLogLevelOptions } from "./enum";
 
 export const supportedKeySpecs: string[] = [
   KeySpecEnum.RSA_2048,
@@ -15,4 +15,5 @@ export const RSA_OAEP = "RSA-OAEP";
 export const DEFAULT_AWS_CREDENTIAL_ENVIRONMENTAL_VARIABLE = "KSM_AWS_KEY_ID";
 export const MD5_HASH = "md5";
 export const HEX_DIGEST = "hex";
+export const DEFAULT_LOG_LEVEL = LoggerLogLevelOptions.info;
 export const DEFAULT_JSON_INDENT = 4;
