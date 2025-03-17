@@ -85,7 +85,7 @@ The storage will require an AWS Key ID, as well as the name of the Secrets Manag
         const oneTimeToken = "US:kYKVGFJ2605-9UBF4VXd14AztMPXcxZ56zC9gr7O-Cw";
         
         const keyId = 'arn:aws:kms:ap-south-1:<accountName>:key/<keyId>';
-        const keyId2 = "arn:aws:kms:ap-south-1:<accountNumber>:key/<keyId2>"
+        const keyId2 = "arn:aws:kms:<cloud-region>:<accountNumber>:key/<keyId2>"
         const storage = await new AWSKeyValueStorage(keyId,config_path).init();
         await storage.changeKey(keyId2);
         await initializeStorage(storage, oneTimeToken);
