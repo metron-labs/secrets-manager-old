@@ -21,7 +21,7 @@ The Secrets Manager AWS KSM module can be installed using npm.
 
 2. Configure AWS Connection
 
-By default the @aws-sdk library will utilize the default connection session setup with the AWS CLI with the aws configure command.  If you would like to specify the connection details, the two configuration files located at `~/.aws/config` and `~/.aws/credentials` can be manually edited.
+By default the @aws-sdk library will utilize the default connection session setup with the AWS CLI with the aws configure command. If you would like to specify the connection details, the two configuration files located at `~/.aws/config` and `~/.aws/credentials` can be manually edited.
 
 See the AWS documentation for more information on setting up an AWS session [here](https://docs.aws.amazon.com/cli/latest/reference/configure/)
 
