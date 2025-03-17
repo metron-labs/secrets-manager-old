@@ -42,7 +42,7 @@ To do this, use GcpKmsKeyValueStorage as your Secrets Manager storage in the Sec
 
 The storage will require a GCP Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by GCP KMS.
 ```
-    import {GCPKeyValueStorage,GCPKeyConfig,GCPKSMClient} from "@keeper-security/secrets-manager-gcp";
+    import {GCPKeyValueStorage,GCPKeyConfig,GCPKSMClient,LoggerLogLevelOptions} from "@keeper-security/secrets-manager-gcp";
 
     const getKeeperRecordsGCP = async () => {
 
@@ -52,11 +52,13 @@ The storage will require a GCP Key ID, as well as the name of the Secrets Manage
         const gcpSessionConfig = new GCPKSMClient().createClientFromCredentialsFile('<gcp_credentials_json_location>')
         console.log("extracted gcp session config")
         let config_path = "<path to client-config-gcp.json>"
-         // oneTimeToken is used only once to initialize the storage
+        let logLevel = LoggerLogLevelOptions.debug;
+
+        // oneTimeToken is used only once to initialize the storage
         // after the first run, subsequent calls will use ksm-config.txt
         const oneTimeToken = "US:kYKVGFJ2605-9UBF4VXd14AztMPXcxZ56zC9gr7O-Cw";
         
-        const storage = await new GCPKeyValueStorage(config_path,keyConfig2,gcpSessionConfig).init();
+        const storage = await new GCPKeyValueStorage(config_path,keyConfig2,gcpSessionConfig,logLevel).init();
         await initializeStorage(storage, oneTimeToken);
         
         const {records} = await getSecrets({storage: storage});
@@ -78,12 +80,21 @@ You can change the key used to encrypt and decrypt your configuration file by ca
 ```
 
 ### Decrypt config
-We can decrypt the configuration file and revert it back to plaintext and save it indefault location if needed.
+We can decrypt the configuration file and revert it back to plaintext and save it in default location if needed.
 ```
   const storage = await new GCPKeyValueStorage(configPath,keyConfig,gcpSessionConfig).init();
   await storage.decryptConfig(keyConfig2);
 ```
 
+## Logging
+We support logging for the AWS KSM integration. Supported log levels are as follows
+* trace
+* debug
+* info
+* warn
+* error
+* fatal
+All these levels should be accessed from the LoggerLogLevelOptions enum. If no log level is set, the default log level is info. We can set the logging level to debug to get more information about the integration.
 
 You're ready to use the KSM integration 👍
 Using the GCP KMS Integration
