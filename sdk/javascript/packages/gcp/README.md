@@ -24,21 +24,21 @@ The Secrets Manager GCP KSM module can be installed using npm
 
 2. Configure GCP Connection
 
-By default the @google-cloud/kms library will utilize the default connection session setup with the GCP CLI with the gcloud auth command.  If you would like to specify the connection details, the two configuration files located at `~/.config/gcloud/configurations/config_default` and ~/.config/gcloud/legacy_credentials/<user>/adc.json can be manually edited.
+By default the @google-cloud/kms library will utilize the default connection session setup with the GCP CLI with the gcloud auth command.  If you would like to specify the connection details, the two configuration files located at `~/.config/gcloud/configurations/config_default` and `~/.config/gcloud/legacy_credentials/<user>/adc.json` can be manually edited.
 
-See the GCP documentation for more information on setting up an GCP session: https://cloud.google.com/sdk/gcloud/reference/auth
+See the GCP documentation for more information on setting up an GCP session (https://cloud.google.com/sdk/gcloud/reference/auth)[here]
 
 Alternatively, configuration variables can be provided explicitly as a service account file using the GcpSessionConfig data class and providing  a path to the service account json file.
 
 You will need a GCP service account to use the GCP KMS integration.
 
-For more information on GCP service accounts see the GCP documentation: https://cloud.google.com/iam/docs/service-accounts
+For more information on GCP service accounts see the (https://cloud.google.com/iam/docs/service-accounts)[GCP documentation]
 
 3. Add GCP KMS Storage to Your Code
 
 Now that the GCP connection has been configured, you need to tell the Secrets Manager SDK to utilize the KMS as storage.
 
-To do this, use GcpKmsKeyvalueStorage as your Secrets Manager storage in the SecretsManager constructor.
+To do this, use GcpKmsKeyValueStorage as your Secrets Manager storage in the SecretsManager constructor.
 
 The storage will require a GCP Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by GCP KMS.
 ```

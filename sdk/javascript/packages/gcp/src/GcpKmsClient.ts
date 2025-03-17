@@ -1,8 +1,11 @@
 import { KeyManagementServiceClient } from "@google-cloud/kms";
 import { GCPKeyValueStorageError } from "./error";
+import pino from "pino";
+import { getLogger } from "./Logger";
+import { DEFAULT_LOG_LEVEL } from "./constants";
 
 export class GCPKSMClient {
-
+  private logger: pino.Logger;
   private KMSClient;
 
 
@@ -22,8 +25,9 @@ export class GCPKSMClient {
    * If you want to use a different set of credentials, you can pass them in the
    * constructor.
    */
-  constructor() {
+  constructor(logger ?: pino.Logger) {
     this.KMSClient = new KeyManagementServiceClient();
+    this.logger = logger == null ? getLogger(DEFAULT_LOG_LEVEL) : logger;
   }
 
   /**
@@ -42,6 +46,7 @@ export class GCPKSMClient {
    */
 
   public createClientFromCredentialsFile(credentialsKeyFilePath: string) {
+    this.logger.debug(`Creating KMS client using credentials file: ${credentialsKeyFilePath}`);
     this.KMSClient = new KeyManagementServiceClient({
       keyFilename: credentialsKeyFilePath,
     });
@@ -64,6 +69,7 @@ export class GCPKSMClient {
    */
 
   public createClientUsingCredentials(clientEmail: string, privateKey: string) {
+    this.logger.debug(`Creating KMS client using credentials: ${clientEmail}`);
     this.KMSClient = new KeyManagementServiceClient({
       credentials: {
         client_email: clientEmail,
@@ -79,7 +85,9 @@ export class GCPKSMClient {
    * @returns The KMS client.
    */
   public getCryptoClient() {
+    this.logger.debug("Getting KMS client");
     if (!this.KMSClient) {
+      this.logger.error("KMS client not initialized. Neither createClientFromCredentialsFile nor createClientUsingCredentials have been called first.");
       throw new GCPKeyValueStorageError("KMS client not initialized. Please call createClientFromCredentialsFile or createClientUsingCredentials first.");
     }
     return this.KMSClient;

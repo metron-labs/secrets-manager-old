@@ -19,12 +19,14 @@ import {
 import { publicEncrypt } from "crypto";
 import { RSA_PKCS1_OAEP_PADDING } from "constants";
 import { GCPKeyValueStorageError } from "./error";
+import pino from "pino";
 
 
 export async function encryptBuffer(
-    options: EncryptBufferOptions
+    options: EncryptBufferOptions, logger: pino.Logger
 ): Promise<Buffer> {
     try {
+        logger.debug("started encryption of data provided")
         // Generate a random 32-byte key
         const key = randomBytes(32);
 
@@ -47,7 +49,7 @@ export async function encryptBuffer(
             encryptionAlgorithm: options.encryptionAlgorithm,
         };
 
-        const CiphertextBlob: Buffer = options.isAsymmetric ? await encryptDataAndValidateCRCAsymmetric(encryptOptions) : await encryptDataAndValidateCRC(encryptOptions);
+        const CiphertextBlob: Buffer = options.isAsymmetric ? await encryptDataAndValidateCRCAsymmetric(encryptOptions,logger) : await encryptDataAndValidateCRC(encryptOptions,logger);
 
         const parts = [CiphertextBlob, nonce, tag, ciphertext];
 
@@ -58,20 +60,23 @@ export async function encryptBuffer(
             lengthBuffer.writeUInt16BE(part.length, 0);
             buffers.push(lengthBuffer, part);
         }
+        logger.debug("Encryption successful");
         return Buffer.concat(buffers);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-        console.error("KCP KMS Storage failed to encrypt:", err.message);
+        logger.error("KCP KMS Storage failed to encrypt:", err.message);
         return Buffer.alloc(0); // Return empty buffer in case of an error
     }
 }
 
 async function encryptDataAndValidateCRCAsymmetric(
-    options: encryptOptions
+    options: encryptOptions, logger: pino.Logger
 ): Promise<Buffer<ArrayBufferLike>> {
+    logger.debug("started encryption of data provided based on asymmetric key provided")
     const keyName = options.keyProperties.toResourceName();
     const encodedData = options.message;
 
+    logger.debug("retrieving public key of given key from Cloud KMS");
     // Get public key from Cloud KMS
     const [publicKey] = await options.cryptoClient.getPublicKey({
         name: keyName,
@@ -87,18 +92,19 @@ async function encryptDataAndValidateCRCAsymmetric(
     const ciphertextBuffer = publicEncrypt(
         {
             key: publicKey.pem,
-            oaepHash: getHashingAlgorithm(options.encryptionAlgorithm),
+            oaepHash: getHashingAlgorithm(options.encryptionAlgorithm,logger),
             padding: RSA_PKCS1_OAEP_PADDING,
         },
         encodedData
     );
-
+    logger.debug("Encryption using asymmetric key provided successful.");
     return ciphertextBuffer;
 }
 
 async function encryptDataAndValidateCRC(
-    options: encryptOptions
+    options: encryptOptions,logger: pino.Logger
 ): Promise<Buffer<ArrayBufferLike>> {
+    logger.debug("started encryption of data provided based on symmetric key provided")
     const keyName = options.keyProperties.toResourceName();
     const encodedData = options.message;
     const encodedDataCrc = calculate(encodedData);
@@ -121,14 +127,15 @@ async function encryptDataAndValidateCRC(
     if (cipherTextCrc !== Number(encryptResponse.ciphertextCrc32c.value)) {
         throw new Error("Encrypt: response corrupted in-transit");
     }
-
+    logger.debug("Encryption using symmetric key provided successful, encoding is pending");
     return typeof ciphertext === "string" ? Buffer.from(ciphertext.toString(), LATIN1_ENCODING) : Buffer.from(ciphertext);
 }
 
 export async function decryptBuffer(
-    options: DecryptBufferOptions
+    options: DecryptBufferOptions,logger: pino.Logger
 ): Promise<string> {
     try {
+        logger.debug("started decryption of data provided")
         // Validate BLOB_HEADER
         const header = Buffer.from(options.ciphertext.subarray(0, 2));
         if (!header.equals(Buffer.from(BLOB_HEADER, LATIN1_ENCODING))) {
@@ -166,7 +173,7 @@ export async function decryptBuffer(
             keyProperties: options.keyProperties,
             isAsymmetric: options.isAsymmetric,
             encryptionAlgorithm: options.encryptionAlgorithm,
-        });
+        },logger);
 
         const key = decryptedData;
         // Decrypt the message using AES-GCM
@@ -177,18 +184,18 @@ export async function decryptBuffer(
             decipher.update(encryptedText),
             decipher.final(),
         ]);
-
+        logger.debug("Google KMS KeyVault Storage decrypted data");
         // Convert decrypted data to a UTF-8 string
         return decrypted.toString(UTF_8_ENCODING);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-        console.error("Google KMS KeyVault Storage failed to decrypt:", err.message);
+        logger.error("Google KMS KeyVault Storage failed to decrypt:", err.message);
         return ""; // Return empty string in case of an error
     }
 }
 
 async function decryptDataAndValidateCRC(
-    options: decryptOptions
+    options: decryptOptions,logger: pino.Logger
 ): Promise<Buffer<ArrayBufferLike>> {
     const keyName = options.keyProperties.toKeyName();
     const cipherData = options.cipherText;
@@ -204,11 +211,13 @@ async function decryptDataAndValidateCRC(
     };
     let decryptResponseData;
     if (options.isAsymmetric) {
+        logger.debug(`Decrypting using asymmetric key ${keyName}`);
         const keyNameForAsymmetricDecrypt = options.keyProperties.toResourceName();
         input.name = keyNameForAsymmetricDecrypt;
         const [decryptResponse] = await KMSClient.asymmetricDecrypt(input);
         decryptResponseData = decryptResponse;
     } else {
+        logger.debug(`decrypting using symmetric key ${keyName}`);
         const [decryptResponse] = await KMSClient.decrypt(input);
         decryptResponseData = decryptResponse;
     }
@@ -217,6 +226,7 @@ async function decryptDataAndValidateCRC(
         calculate(decryptResponseData.plaintext) !==
         Number(decryptResponseData.plaintextCrc32c.value)
     ) {
+        logger.error("Decrypt: response corrupted in-transit");
         throw new Error("Decrypt: response corrupted in-transit");
     }
     const plaintext = decryptResponseData.plaintext;
@@ -224,7 +234,7 @@ async function decryptDataAndValidateCRC(
     return typeof plaintext === "string" ? Buffer.from(plaintext.toString(), LATIN1_ENCODING) : Buffer.from(plaintext);
 }
 
-function getHashingAlgorithm(encryptionAlgorithm): string {
+function getHashingAlgorithm(encryptionAlgorithm,logger: pino.Logger): string {
     
     const supportedEncryptionAlgorithms ={
         "RSA_DECRYPT_OAEP_2048_SHA256" : SHA_256,
@@ -238,6 +248,7 @@ function getHashingAlgorithm(encryptionAlgorithm): string {
 
     const suggestedHash = supportedEncryptionAlgorithms[encryptionAlgorithm];
     if(!suggestedHash){
+        logger.error(`Unsupported encryption algorithm: ${encryptionAlgorithm} is used for provided key, Supported encryption algorithms are ${Object.keys(supportedEncryptionAlgorithms)}`);
         throw new GCPKeyValueStorageError("Unsupported encryption algorithm is used for provided key");
     }
     return suggestedHash;

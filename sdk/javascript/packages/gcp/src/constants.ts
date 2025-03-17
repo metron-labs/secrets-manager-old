@@ -1,4 +1,4 @@
-import { KeyPurpose } from "./enum";
+import { KeyPurpose, LoggerLogLevelOptions } from "./enum";
 import {constants} from "crypto";
 
 export const supportedKeyPurpose: string[] = [
@@ -18,3 +18,4 @@ export const OAEP_PADDINg = constants.RSA_PKCS1_OAEP_PADDING;
 export const SHA_256 = 'sha256';
 export const SHA_1 = 'sha1';
 export const SHA_512 = 'sha512';
+export const DEFAULT_LOG_LEVEL = LoggerLogLevelOptions.info;

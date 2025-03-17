@@ -10,16 +10,18 @@ import {
 import { GCPKeyConfig } from "./GcpKeyConfig";
 import { GCPKeyValueStorageError } from "./error";
 import { GCPKSMClient } from "./GcpKmsClient";
-import { KeyPurpose } from "./enum";
+import { KeyPurpose, LoggerLogLevelOptions } from "./enum";
 import {
   DEFAULT_JSON_INDENT,
+  DEFAULT_LOG_LEVEL,
   HEX_DIGEST,
   MD5_HASH,
   supportedKeyPurpose,
 } from "./constants";
 import { decryptBuffer, encryptBuffer } from "./utils";
-import { defaultLogger, Logger } from "./Logger";
+import { getLogger } from "./Logger";
 import { KMSClient } from "./interface/UtilOptions";
+import { Logger } from "pino";
 
 export class GCPKeyValueStorage implements KeyValueStorage {
   private defaultConfigFileLocation: string = "client-config.json";
@@ -34,23 +36,15 @@ export class GCPKeyValueStorage implements KeyValueStorage {
   private isAsymmetric: boolean = false;
   private encryptionAlgorithm: string;
 
-  setLogger(logger: Logger | null) {
-    if (logger) {
-      this.logger = logger;
-    } else {
-      this.logger = defaultLogger;
-    }
-  }
-
-  getString(key: string): Promise<string | undefined> {
+  public getString(key: string): Promise<string | undefined> {
     return this.get(key);
   }
 
-  saveString(key: string, value: string): Promise<void> {
+  public saveString(key: string, value: string): Promise<void> {
     return this.set(key, value);
   }
 
-  async getBytes(key: string): Promise<Uint8Array | undefined> {
+  public async getBytes(key: string): Promise<Uint8Array | undefined> {
     const bytesString = await this.get(key);
     if (bytesString) {
       return platform.base64ToBytes(bytesString);
@@ -58,18 +52,30 @@ export class GCPKeyValueStorage implements KeyValueStorage {
     return undefined;
   }
 
-  saveBytes(key: string, value: Uint8Array): Promise<void> {
+  public saveBytes(key: string, value: Uint8Array): Promise<void> {
     const bytesString = platform.bytesToBase64(value);
     return this.set(key, bytesString);
   }
 
-  getObject?<T>(key: string): Promise<T | undefined> {
+  public async delete(key: string): Promise<void> {
+    const config = await this.readStorage();
+
+    if (config[key]) {
+      this.logger.debug(`Deleting key ${key} from ${this.configFileLocation}`);
+      delete config[key];
+    } else {
+      this.logger.debug(`Key ${key} not found in ${this.configFileLocation}`);
+    }
+    await this.saveStorage(config);
+  }
+  
+  public getObject?<T>(key: string): Promise<T | undefined> {
     return this.getString(key).then((value) =>
       value ? (JSON.parse(value) as T) : undefined
     );
   }
 
-  saveObject?<T>(key: string, value: T): Promise<void> {
+  public saveObject?<T>(key: string, value: T): Promise<void> {
     const json = JSON.stringify(value);
     return this.saveString(key, json);
   }
@@ -82,19 +88,20 @@ export class GCPKeyValueStorage implements KeyValueStorage {
    *    If env KSM_CONFIG_FILE is not set, uses default location.
    * @param {GCPKeyConfig} gcpKeyConfig The configuration for the GCP KMS key.
    * @param {GCPKSMClient} gcpSessionConfig The GCP KMS client session configuration.
-   * @param {Logger | null} logger The logger instance. If null or undefined, uses the default logger.
+   * @param {LoggerLogLevelOptions } logLevel The log level to use for the logger.
    */
   constructor(
     keyVaultConfigFileLocation: string | null,
     gcpKeyConfig: GCPKeyConfig,
     gcpSessionConfig: GCPKSMClient,
-    logger: Logger | null
+    logLevel ?: LoggerLogLevelOptions
   ) {
     this.configFileLocation =
       keyVaultConfigFileLocation ??
       process.env.KSM_CONFIG_FILE ??
       this.defaultConfigFileLocation;
-    this.setLogger(logger);
+    
+    this.logger = logLevel==null ? getLogger(DEFAULT_LOG_LEVEL) : getLogger(logLevel);
 
     this.gcpSessionConfig = gcpSessionConfig;
     this.gcpKeyConfig = gcpKeyConfig;
@@ -103,14 +110,14 @@ export class GCPKeyValueStorage implements KeyValueStorage {
     this.lastSavedConfigHash = "";
   }
 
-  async init() {
+  public async init() {
     await this.getKeyDetails();
     await this.loadConfig();
     this.logger.info(`Loaded config file from ${this.configFileLocation}`);
     return this; // Return the instance to allow chaining
   }
 
-  async getKeyDetails() {
+  private async getKeyDetails() {
     try {
       const input = {
         name: this.gcpKeyConfig.toKeyName(),
@@ -126,11 +133,13 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         );
       }
 
+      this.logger.debug(`Key purpose for key provided: ${keyPurposeDetails}`);
       if (keyPurposeDetails === KeyPurpose.ASYMMETRIC_DECRYPT) {
         this.isAsymmetric = true;
       } else {
         this.isAsymmetric = false;
       }
+      this.logger.debug(`key is ${this.isAsymmetric ? "asymmetric" : "symmetric"}`);
 
       this.keyType = keyPurposeDetails;
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,6 +180,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         const configData = contents.toString();
         config = JSON.parse(configData);
         // Encrypt and save the config if it's plain JSON
+        this.logger.info("given config file is not encrypted, starting encryption");
         if (config) {
           this.config = config;
           await this.saveConfig(config);
@@ -186,6 +196,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
+        this.logger.debug("given file is encrypted file. trying to decrypt the configuration into a json from it")
         jsonError = err;
       }
 
@@ -197,7 +208,8 @@ export class GCPKeyValueStorage implements KeyValueStorage {
           keyType: this.keyType,
           encryptionAlgorithm: this.encryptionAlgorithm,
           keyProperties: this.gcpKeyConfig
-        });
+        },this.logger);
+        this.logger.debug("decrypted configuration, trying to parse decrypted configuration into a json")
         try {
           config = JSON.parse(configJson);
           this.config = config ?? {};
@@ -284,6 +296,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         Object.keys(this.config),
         DEFAULT_JSON_INDENT
       );
+      this.logger.debug("encrypting the config before writing to file.")
       const blob = await encryptBuffer({
         isAsymmetric: this.isAsymmetric,
         message: stringifiedValue,
@@ -291,14 +304,14 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         keyType: this.keyType,
         encryptionAlgorithm: this.encryptionAlgorithm,
         keyProperties: this.gcpKeyConfig
-      });
+      },this.logger);
       await fs.writeFile(this.configFileLocation, blob);
-
+      this.logger.debug("writing to the file completed successfully.")
       // Update the last saved config hash
       this.lastSavedConfigHash = configHash;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error saving config:", err.message);
+      this.logger.error("Error saving config:", err.message);
     }
   }
 
@@ -318,7 +331,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
       this.logger.error(
         `Failed to load config file ${this.configFileLocation}: ${err.message}`
       );
-      throw new Error(`Failed to load config file ${this.configFileLocation}`);
+      throw new GCPKeyValueStorageError(`Failed to load config file ${this.configFileLocation}`);
     }
 
     try {
@@ -330,13 +343,15 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         encryptionAlgorithm: this.encryptionAlgorithm,
         keyProperties: this.gcpKeyConfig,
         ciphertext,
-      });
+      },this.logger);
       if (plaintext.length === 0) {
         this.logger.error(
           `Failed to decrypt config file ${this.configFileLocation}`
         );
       } else if (autosave) {
         // Optionally autosave the decrypted content
+        this.logger.debug("Autosave is true here. hence saving to file the decrypted configuration.");
+        this.logger.warn("Saving the credentials file as plaintext file, please consider encrypting.")
         await fs.writeFile(this.configFileLocation, plaintext);
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -358,13 +373,17 @@ export class GCPKeyValueStorage implements KeyValueStorage {
 
     try {
       // Update the key and reinitialize the CryptographyClient
+      this.logger.debug("Changing key");
       const config = this.config;
       if (Object.keys(config).length == 0) {
         await this.init();
       }
+      this.logger.debug("getting new key details");
       this.gcpKeyConfig = newGcpKeyConfig;
       await this.getKeyDetails();
+      this.logger.debug("saving config with new key");
       await this.saveConfig({}, true);
+      this.logger.info("saving configuration with new key successful");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Restore the previous key and crypto client if the operation fails
@@ -383,9 +402,9 @@ export class GCPKeyValueStorage implements KeyValueStorage {
   private async createConfigFileIfMissing(): Promise<void> {
     try {
       await fs.access(this.configFileLocation);
-      console.log("Config file already exists at:", this.configFileLocation);
+      this.logger.info("Config file already exists at:", this.configFileLocation);
     } catch {
-      console.log("Config file does not exist at:", this.configFileLocation);
+      this.logger.info("Config file does not exist at:", this.configFileLocation);
       const dir = dirname(this.configFileLocation);
       try {
         await fs.access(dir);
@@ -400,58 +419,47 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         cryptoClient: this.cryptoClient,
         encryptionAlgorithm: this.encryptionAlgorithm,
         keyProperties: this.gcpKeyConfig
-      });
+      },this.logger);
       await fs.writeFile(this.configFileLocation, blob);
-      console.log("Config file created at:", this.configFileLocation);
+      this.logger.info("Config file created at:", this.configFileLocation);
     }
   }
 
-  public async readStorage(): Promise<Record<string, string>> {
+  private async readStorage(): Promise<Record<string, string>> {
     if (!this.config) {
+      this.logger.debug("config is empty, loading configuration");
       await this.loadConfig();
     }
     return Promise.resolve(this.config);
   }
 
-  public saveStorage(updatedConfig: Record<string, string>): Promise<void> {
+  private saveStorage(updatedConfig: Record<string, string>): Promise<void> {
     return this.saveConfig(updatedConfig);
   }
 
-  public async get(key: string): Promise<string> {
+  private async get(key: string): Promise<string> {
     const config = await this.readStorage();
     return Promise.resolve(config[key]);
   }
 
-  public async set(key: string, value: string): Promise<void> {
+  private async set(key: string, value: string): Promise<void> {
     const config = await this.readStorage();
     config[key] = value;
     await this.saveStorage(config);
   }
 
-  public async delete(key: string): Promise<void> {
-    const config = await this.readStorage();
-
-    if (config[key]) {
-      this.logger.debug(`Deleting key ${key} from ${this.configFileLocation}`);
-      delete config[key];
-    } else {
-      this.logger.debug(`Key ${key} not found in ${this.configFileLocation}`);
-    }
-    await this.saveStorage(config);
-  }
-
-  public async deleteAll(): Promise<void> {
+  private async deleteAll(): Promise<void> {
     await this.readStorage();
     Object.keys(this.config).forEach((key) => delete this.config[key]);
     await this.saveStorage({});
   }
 
-  public async contains(key: string): Promise<boolean> {
+  private async contains(key: string): Promise<boolean> {
     const config = await this.readStorage();
     return Promise.resolve(key in Object.keys(config));
   }
 
-  public async isEmpty(): Promise<boolean> {
+  private async isEmpty(): Promise<boolean> {
     const config = await this.readStorage();
     return Promise.resolve(Object.keys(config).length === 0);
   }

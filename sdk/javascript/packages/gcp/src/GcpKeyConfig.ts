@@ -1,4 +1,7 @@
+import pino from "pino";
 import { GCPKeyValueStorageError } from "./error";
+import { getLogger } from "./Logger";
+import { DEFAULT_LOG_LEVEL } from "./constants";
 
 /**
  * Configuration for a Google Cloud Key Management Service (KMS) key.
@@ -43,6 +46,7 @@ export class GCPKeyConfig {
      * @type {string}
      */
     public location: string;
+    private logger: pino.Logger<never, boolean>;
 
     /**
      * @param {string} [resourcename] The full resource name of a key in the form
@@ -53,7 +57,8 @@ export class GCPKeyConfig {
      * @param {string} [location] The location (region or multi-region)
      * @param {string} [keyVersion] The version of the key. If not provided, the latest version will be used.
      */
-    constructor(resourcename?: string, keyName?: string, keyRing?: string, project?: string, location?: string, keyVersion?: string | null,) {
+    constructor(resourcename?: string, keyName?: string, keyRing?: string, project?: string, location?: string, keyVersion?: string | null,logger ?: pino.Logger) {
+        this.logger = logger == null ? getLogger(DEFAULT_LOG_LEVEL) : logger;
         if (!resourcename) {
             this.keyName = keyName ?? '';
             this.keyVersion = keyVersion ?? '';
@@ -64,6 +69,7 @@ export class GCPKeyConfig {
             const parts = resourcename.split('/');
 
             if (parts.length < 10) {
+                this.logger.error(`given KMS resource path ${resourcename} is invalid`);
                 throw new GCPKeyValueStorageError("Invalid KMS resource path");
             }
             this.project = parts[1];
@@ -74,19 +80,23 @@ export class GCPKeyConfig {
         }
 
         if (!this.keyName || !this.keyRing || !this.project || !this.location) {
+            this.logger.error(`given KMS resource path ${resourcename} is invalid. please provide all [keyname,keyring,project,location] details or directly a valid resource URL`);
             throw new GCPKeyValueStorageError("Invalid KMS resource path");
         }
     }
 
     public toString(this) {
+        this.logger.debug("Converting key config to string");
         return `${this.keyName}, ${this.keyVersion}`;
     }
 
     public toKeyName(this) {
+        this.logger.debug("Converting key config to key name (no key version)");
         return `projects/${this.project}/locations/${this.location}/keyRings/${this.keyRing}/cryptoKeys/${this.keyName}`;
     }
 
     public toResourceName(this) {
+        this.logger.debug("Converting key config to resource name");
         return `projects/${this.project}/locations/${this.location}/keyRings/${this.keyRing}/cryptoKeys/${this.keyName}/cryptoKeyVersions/${this.keyVersion}`;
     }
 

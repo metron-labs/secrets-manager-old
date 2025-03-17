@@ -11,3 +11,12 @@ export enum EncryptionAlgorithmSpec {
   SYMMETRIC_DEFAULT = "SYMMETRIC_DEFAULT",
   RSAES_OAEP_SHA_256 = "RSAES_OAEP_SHA_256"
 }
+
+export enum LoggerLogLevelOptions {
+  trace = "trace",
+  debug = "debug",
+  info = "info",
+  warn = "warn",
+  error = "error",
+  fatal = "fatal",
+}
