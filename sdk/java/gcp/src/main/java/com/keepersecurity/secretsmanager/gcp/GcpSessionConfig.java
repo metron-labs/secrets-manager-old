@@ -7,14 +7,16 @@ public class GcpSessionConfig {
 	private String keyId;
 	private String projectId;
 	private String keyVersion;
-	
-	public GcpSessionConfig(String projectId, String location, String keyRing, String keyId, String keyVersion) {
+	private String credentialsPath;
+
+	public GcpSessionConfig(String projectId, String location, String keyRing, String keyId, String keyVersion, String credentialsPath) {
 		super();
 		this.location = location;
 		this.keyRing = keyRing;
 		this.keyId = keyId;
 		this.projectId = projectId;
 		this.keyVersion = keyVersion;
+		this.credentialsPath = credentialsPath;
 	}
 	
 	public String getProjectId() {
@@ -49,4 +51,11 @@ public class GcpSessionConfig {
 		this.keyVersion = keyVersion;
 	}
 
+	public String getCredentialsPath() {
+		return credentialsPath;
+	}
+
+	public void setCredentialsPath(String credentialsPath) {
+		this.credentialsPath = credentialsPath;
+	}
 }

@@ -18,9 +18,13 @@ Features
 # Set Up Authentication
 Before using Google Cloud APIs, you must authenticate your Python application. The easiest way to do this is by setting up a service account and downloading a service account key file (JSON). This service account should have the appropriate permissions to interact with the KMS API.
 
-*Go to the Google Cloud Console. *Navigate to IAM & Admin → Service Accounts. *Create a new service account or select an existing one. *Assign the necessary permissions (e.g., Cloud KMS Admin, or Cloud KMS CryptoKey Encrypter/Decrypter). *Download the private key JSON file. Then, set the GOOGLE_APPLICATION_CREDENTIALS environment variable to point to the path of the downloaded key file:
+*Go to the Google Cloud Console. *Navigate to IAM & Admin → Service Accounts. *Create a new service account or select an existing one. *Assign the necessary permissions (e.g., Cloud KMS Admin, or Cloud KMS CryptoKey Encrypter/Decrypter). *Download the private key JSON file.
 
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account-file.json"
+You can also set the GOOGLE_APPLICATION_CREDENTIALS environment variable to point to the path of the downloaded key file:
+
+`export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account-file.json"`
+
+For more detail: https://cloud.google.com/kms/docs/iam
 
 # Permissions
 Make sure that the service account you're using has appropriate permissions. Typically, you'll need:
@@ -139,18 +143,12 @@ dependencies {
 
 Configuration variables can be provided as 
 
- By default the @aws-sdk library will utilize the default connection session setup with the AWS CLI with the aws configure command.  If you would like to specify the connection details, the two configuration files located at `~/.aws/config` and ~/.aws/credentials can be manually edited.
+You will need an GCP ProjectId, location, KeyRing to use the GCP KMS integration.
 
-See the AWS documentation for more information on setting up an AWS session: https://docs.aws.amazon.com/cli/latest/reference/configure/
-
-Alternatively, configuration variables can be provided explicitly as an access key using the AwsSessionConfig data class and providing `awsAccessKeyId`,  `awsSecretAccessKey` and  `region` variables.
-
-You will need an AWS Access Key to use the AWS KMS integration.
-
-For more information on AWS Access Keys see the AWS documentation: https://aws.amazon.com/premiumsupport/knowledge-center/create-access-key/
+For more information on GCP Configuration see the GCP documentation: https://cloud.google.com/kms/docs/reference/libraries#client-libraries-install-java
         
         
-Initializes AwsKeyValueStorage
+Initializes GcpKeyValueStorage
 
 ```
      	String projectId = "<GCP project id>";
@@ -158,21 +156,22 @@ Initializes AwsKeyValueStorage
 		String keyRing = "<Key Ring>>";
 		String keyId = "<Key ID>";  //Symmetric or Asymmetric
 		String keyVersion ="<Key Version>";
-    	GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, keyId, keyVersion);
+		String credentialsPaths = "<credential.json path>";
+    	GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, keyId, keyVersion, credentialsPaths);
 ```
 
 An access key using the `GcpSessionConfig` data class and providing `projectId`,`location`, `keyRing`, `keyId` and `keyVersion` variables.
 
 
-For more information on Azure App Directory App registration and Permissions see the Azure documentation: https://learn.microsoft.com/en-us/azure/key-vault/general/authentication
+For more information on GCP KMS see the documentation: https://cloud.google.com/kms/docs/resource-hierarchy
 
-**Add AWS KMS Storage to Your Code**
+**Add GCP KMS Storage to Your Code**
 
-Now that the AWS connection has been configured, you need to tell the Secrets Manager SDK to utilize the KMS as storage.
+Now that the GCP connection has been configured, you need to tell the Secrets Manager SDK to utilize the KMS as storage.
 
-To do this, use AwsKeyValueStorage as your Secrets Manager storage in the SecretsManager constructor.
+To do this, use GcpKeyValueStorage as your Secrets Manager storage in the SecretsManager constructor.
 
-The storage will require an AWS Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by AWS KMS. Below is the sample Test class
+The storage will require an GCP KeyId and KeyVersion, as well as the name of the Secrets Manager configuration file which will be encrypted by GCP KMS. Below is the sample Test class
 
 ```
 import static com.keepersecurity.secretsManager.core.SecretsManager.initializeStorage;		
@@ -196,10 +195,11 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 					String keyRing = "<Key Ring>>";
 					String keyId = "<Key ID>";  //Symmetric or Asymmetric
 					String keyVersion ="<Key Version>";
+					String credentialsPaths = "<credential.json path>";
 				    String configFileLocation = "client_config_test.json";
 				   Security.addProvider(new BouncyCastleFipsProvider());
 				try{
-		    			GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, keyId, keyVersion);
+		    			GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, keyId, keyVersion, credentialsPaths);
 						GcpKeyValueStorage storage = new GcpKeyValueStorage(configFileLocation, sessionConfig);
 						initializeStorage(storage, oneTimeToken);
            			SecretsManagerOptions options = new SecretsManagerOptions(storage);	
