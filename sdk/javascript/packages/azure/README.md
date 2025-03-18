@@ -11,7 +11,7 @@ Features
 
 Prerequisites
 
-* Supports the Python and Javascript Secrets Manager SDK
+* Supports the Javascript Secrets Manager SDK
 * Requires Azure packages: azure-identity and azure-keyvault-keys
 * Works with just RSA key types
 
