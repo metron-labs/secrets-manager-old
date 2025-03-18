@@ -32,6 +32,7 @@ Make sure that the service account you're using has appropriate permissions. Typ
 Cloud KMS CryptoKey Encrypter/Decrypter permission for encrypting and decrypting data.
 Cloud KMS Key Viewer permission to fetch key details. You can assign these roles via IAM in the Google Cloud Console or using gcloud.
 
+
 # Download and Installation
 
 **Install With Gradle or Maven**
@@ -152,16 +153,16 @@ dependencies {
   
 ** Configure GCP Connection **
 
+** Initializes GcpKeyValueStorage **
 
 Configuration variables can be provided as 
 
-You will need an GCP ProjectId, location, KeyRing to use the GCP KMS integration.
+     config_file_location provides keeper secret manager config file location - if missing read from env param KSM_CONFIG_FILE
+     It can be export like "export KSM_CONFIG_FILE = <Config File location>"
+     
 
-For more information on GCP Configuration see the GCP documentation: https://cloud.google.com/kms/docs/reference/libraries#client-libraries-install-java
+GCPSessionConfig is needed to initialize GCPKeyValueStorage. To initialize GCPSessionConfig, You will need an GCP ProjectId, location, KeyRing, keyId and keyVersion to use the GCP KMS integration.
         
-        
-Initializes GcpKeyValueStorage
-
 ```
      	String projectId = "<GCP project id>";
 	 	String location = "<GCP cloud Location>";
@@ -171,11 +172,9 @@ Initializes GcpKeyValueStorage
 		String credentialsPaths = "<credential.json path>";
     	GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, keyId, keyVersion, credentialsPaths);
 ```
-
-An access key using the `GcpSessionConfig` data class and providing `projectId`,`location`, `keyRing`, `keyId` and `keyVersion` variables.
-
-
-For more information on GCP KMS see the documentation: https://cloud.google.com/kms/docs/resource-hierarchy
+For more information on GCP Configuration see the GCP documentation: https://cloud.google.com/kms/docs/reference/libraries#client-libraries-install-java
+ OR
+For more information on GCP KMS parameter see the documentation: https://cloud.google.com/kms/docs/resource-hierarchy
 
 **Add GCP KMS Storage to Your Code**
 
