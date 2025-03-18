@@ -11,11 +11,9 @@ Features
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with Azure Key Vault
 * Protect against unauthorized access to your Secrets Manager connections
 * Requires only minor changes to code for immediate protection. Works with all Keeper Secrets Manager Javascript SDK functionality
-* Requires only minor changes to code for immediate protection. Works with all Keeper Secrets Manager Javascript SDK functionality
 
 Prerequisites
 
-* Supports the Javascript Secrets Manager SDK
 * Supports the Javascript Secrets Manager SDK
 * Requires Azure packages: azure-identity and azure-keyvault-keys
 * Works with just RSA key types
@@ -24,11 +22,10 @@ Setup
 1. Install KSM Storage Module
 
 The Secrets Manager HSM modules are located in the Keeper Secrets Manager storage module which can be installed using `npm`
-The Secrets Manager HSM modules are located in the Keeper Secrets Manager storage module which can be installed using `npm`
 
 > `npm install @keeper-security/secrets-manager-azure`
 
-2. Configure Azure Connection
+1. Configure Azure Connection
 
 configuration variables can be provided as 
 
@@ -41,7 +38,6 @@ configuration variables can be provided as
     const azureSessionConfig = new AzureSessionConfig(tenant_id, client_id, client_secret)
 ```
 
-An authentication configuration is created using the **AzureSessionConfig** class, which requires the `tenant_id`, `client_id`, and `client_secret` parameters. This configuration is then used in the **AzureKeyValueStorage**.
 An authentication configuration is created using the **AzureSessionConfig** class, which requires the `tenant_id`, `client_id`, and `client_secret` parameters. This configuration is then used in the **AzureKeyValueStorage**.
 
 You will need an Azure App directory App to use the Azure Key Vault integration.
@@ -56,7 +52,6 @@ Now that the Azure connection has been configured, you need to tell the Secrets 
 To do this, use AzureKeyValueStorage as your Secrets Manager storage in the SecretsManager constructor.
 
 The storage will require an Azure Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by Azure Key Vault.
-
 
 azure_keyvault_example_custom.ts 
 ```
