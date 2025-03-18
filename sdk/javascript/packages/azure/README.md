@@ -72,7 +72,6 @@ azure_keyvault_example_custom.ts
         
         const keyId = 'https://<vault_name>.vault.azure.net/keys/<key_name>/<version>'
         const storage = await new AzureKeyValueStorage(keyId,config_path,azureSessionConfig,logLevel).init();
-        const storage = await new AzureKeyValueStorage(keyId,config_path,azureSessionConfig,logLevel).init();
         await initializeStorage(storage, oneTimeToken);
         
         const {records} = await getSecrets({storage: storage});
