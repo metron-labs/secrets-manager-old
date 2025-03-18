@@ -3,6 +3,7 @@
 Protect Secrets Manager connection details with Azure Key Vault
 
 Keeper Secrets Manager integrates with Azure Key Vault in order to provide protection for Keeper Secrets Manager configuration files. With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
+
 Features
 
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with Azure Key Vault
@@ -49,6 +50,7 @@ Now that the Azure connection has been configured, you need to tell the Secrets 
 To do this, use AzureKeyValueStorage as your Secrets Manager storage in the SecretsManager constructor.
 
 The storage will require an Azure Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by Azure Key Vault.
+
 azure_keyvault_example_custom.ts 
 ```
     import { getSecrets, initializeStorage, localConfigStorage } from '@keeper-security/secrets-manager-core';
@@ -87,7 +89,7 @@ Using the Azure Key Vault Integration
 
 Once setup, the Secrets Manager Azure Key Vault integration supports all Secrets Manager JavaScript SDK functionality. Your code will need to be able to access the Azure Key Vault APIs in order to manage the decryption of the configuration file when run. 
 
-Change Key used to encrypt the configuration file
+Change Key used to change the key configuration of the encrypted KSM configuration file.
 ```
     import { getSecrets, initializeStorage, localConfigStorage } from '@keeper-security/secrets-manager-core';
     import {AzureKeyValueStorage, AzureSessionConfig} from "@keeper/secrets-manager-azure";
