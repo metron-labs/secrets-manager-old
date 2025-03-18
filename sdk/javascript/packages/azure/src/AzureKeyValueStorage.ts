@@ -12,6 +12,10 @@ import { getLogger } from "./Logger";
 import { DEFAULT_AZURE_CREDENTIAL_ENVIRONMENTAL_VARIABLE, DEFAULT_JSON_INDENT, DEFAULT_LOG_LEVEL, HEX_DIGEST, MD5_HASH } from "./constants";
 import { Logger } from "pino";
 import { LoggerLogLevelOptions } from "./enum";
+import { getLogger } from "./Logger";
+import { DEFAULT_AZURE_CREDENTIAL_ENVIRONMENTAL_VARIABLE, DEFAULT_JSON_INDENT, DEFAULT_LOG_LEVEL, HEX_DIGEST, MD5_HASH } from "./constants";
+import { Logger } from "pino";
+import { LoggerLogLevelOptions } from "./enum";
 
 
 export class AzureKeyValueStorage implements KeyValueStorage {
@@ -269,6 +273,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
                 await fs.mkdir(dir, { recursive: true });
             }
             // Encrypt an empty configuration and write to the file
+            const blob = await encryptBuffer(this.cryptoClient, "{}", this.logger);
             const blob = await encryptBuffer(this.cryptoClient, "{}", this.logger);
             await fs.writeFile(this.configFileLocation, blob);
             this.logger.info(`Config file created at: ${this.configFileLocation.toString()}`);

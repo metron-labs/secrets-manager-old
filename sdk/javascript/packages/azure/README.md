@@ -4,14 +4,18 @@ Protect Secrets Manager connection details with Azure Key Vault
 
 Keeper Secrets Manager integrates with Azure Key Vault in order to provide protection for Keeper Secrets Manager configuration files. With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
 
+Keeper Secrets Manager integrates with Azure Key Vault in order to provide protection for Keeper Secrets Manager configuration files. With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
+
 Features
 
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with Azure Key Vault
 * Protect against unauthorized access to your Secrets Manager connections
 * Requires only minor changes to code for immediate protection. Works with all Keeper Secrets Manager Javascript SDK functionality
+* Requires only minor changes to code for immediate protection. Works with all Keeper Secrets Manager Javascript SDK functionality
 
 Prerequisites
 
+* Supports the Javascript Secrets Manager SDK
 * Supports the Javascript Secrets Manager SDK
 * Requires Azure packages: azure-identity and azure-keyvault-keys
 * Works with just RSA key types
@@ -19,6 +23,7 @@ Prerequisites
 Setup
 1. Install KSM Storage Module
 
+The Secrets Manager HSM modules are located in the Keeper Secrets Manager storage module which can be installed using `npm`
 The Secrets Manager HSM modules are located in the Keeper Secrets Manager storage module which can be installed using `npm`
 
 > `npm install @keeper-security/secrets-manager-azure`
@@ -37,6 +42,7 @@ configuration variables can be provided as
 ```
 
 An authentication configuration is created using the **AzureSessionConfig** class, which requires the `tenant_id`, `client_id`, and `client_secret` parameters. This configuration is then used in the **AzureKeyValueStorage**.
+An authentication configuration is created using the **AzureSessionConfig** class, which requires the `tenant_id`, `client_id`, and `client_secret` parameters. This configuration is then used in the **AzureKeyValueStorage**.
 
 You will need an Azure App directory App to use the Azure Key Vault integration.
 
@@ -50,6 +56,7 @@ Now that the Azure connection has been configured, you need to tell the Secrets 
 To do this, use AzureKeyValueStorage as your Secrets Manager storage in the SecretsManager constructor.
 
 The storage will require an Azure Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by Azure Key Vault.
+
 
 azure_keyvault_example_custom.ts 
 ```
@@ -66,11 +73,15 @@ azure_keyvault_example_custom.ts
         let config_path = "<path to client-config.json>"
         const logLevel = LoggerLogLevelOptions.info;
 
+        const logLevel = LoggerLogLevelOptions.info;
+
         // oneTimeToken is used only once to initialize the storage
         // after the first run, subsequent calls will use ksm-config.txt
         const oneTimeToken = "[One Time Token]";
+        const oneTimeToken = "[One Time Token]";
         
         const keyId = 'https://<vault_name>.vault.azure.net/keys/<key_name>/<version>'
+        const storage = await new AzureKeyValueStorage(keyId,config_path,azureSessionConfig,logLevel).init();
         const storage = await new AzureKeyValueStorage(keyId,config_path,azureSessionConfig,logLevel).init();
         await initializeStorage(storage, oneTimeToken);
         
@@ -101,6 +112,7 @@ azure_keyvault_example_custom.ts
         
         // oneTimeToken is used only once to initialize the storage
         // after the first run, subsequent calls will use ksm-config.txt
+        const oneTimeToken = "[One Time Token]";
         const oneTimeToken = "[One Time Token]";
         
         const keyId = 'https://<vault_name>.vault.azure.net/keys/<key_name>/<version>'
