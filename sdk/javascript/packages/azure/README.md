@@ -7,7 +7,7 @@ Features
 
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with Azure Key Vault
 * Protect against unauthorized access to your Secrets Manager connections
-* Requires only minor changes to code for immediate protection.  Works with all Keeper Secrets Manager Python SDK functionality
+* Requires only minor changes to code for immediate protection. Works with all Keeper Secrets Manager Javascript SDK functionality
 
 Prerequisites
 
