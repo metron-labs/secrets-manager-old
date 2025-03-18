@@ -68,7 +68,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	public AwsKeyValueStorage(String keyId, String configFileLocation, String profile, AwsSessionConfig sessionConfig)
 			throws Exception {
 		this.configFileLocation = configFileLocation != null ? configFileLocation
-				: System.getenv("AWS_CONFIG_FILE") != null ? System.getenv("AWS_CONFIG_FILE")
+				: System.getenv("KSM_CONFIG_FILE") != null ? System.getenv("KSM_CONFIG_FILE")
 						: this.defaultConfigFileLocation;
 		this.keyId = keyId != null ? keyId : System.getenv("AWS_KMS_KEY_ID");
 		this.configMap = new HashMap<String, Object>();

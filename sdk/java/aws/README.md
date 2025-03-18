@@ -136,8 +136,8 @@ Configuration variables can be provided as
     The keyId must be exported like "export AWS_KMS_KEY_ID = <Key Id>"
     The master key needs encrypt, decrypt privileges ```
     
-     config_file_location provides keeper config file location - if missing read from env param AWS_CONFIG_FILE
-     It can be export like "export AWS_CONFIG_FILE = <Config File location>"
+     config_file_location provides keeper secret manager config file location - if missing read from env param KSM_CONFIG_FILE
+     It can be export like "export KSM_CONFIG_FILE = <Config File location>"
     
  Ensure that you have valid AWS credentials. You can configure AWS credentials in the following ways:
  
