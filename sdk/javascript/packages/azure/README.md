@@ -62,13 +62,14 @@ azure_keyvault_example_custom.ts
         const azureSessionConfig = new AzureSessionConfig(tenant_id, client_id, client_secret)
         
         let config_path = "<path to client-config.json>"
-            
+        const logLevel = LoggerLogLevelOptions.info;
+
         // oneTimeToken is used only once to initialize the storage
         // after the first run, subsequent calls will use ksm-config.txt
         const oneTimeToken = "[One Time Token]";
         
         const keyId = 'https://<vault_name>.vault.azure.net/keys/<key_name>/<version>'
-        const storage = await new AzureKeyValueStorage(keyId,config_path,azureSessionConfig).init();
+        const storage = await new AzureKeyValueStorage(keyId,config_path,azureSessionConfig,logLevel).init();
         await initializeStorage(storage, oneTimeToken);
         
         const {records} = await getSecrets({storage: storage});
@@ -109,81 +110,6 @@ Change Key used to encrypt the configuration file
         const storage = await new AzureKeyValueStorage(keyId2,config_path,azureSessionConfig).init();
         await storage.changeKey(keyId2);
         await initializeStorage(storage, oneTimeToken);
-        
-        const {records} = await getSecrets({storage: storage});
-        console.log(records)
-
-        const firstRecord = records[0];
-        const firstRecordPassword = firstRecord.data.fields.find((x: { type: string; }) => x.type === 'bankAccount');
-        console.log(firstRecordPassword.value[0]);
-    }
-    console.log("start")
-    getKeeperRecords()
-```
-
-## using custom logging if needed
-the module interfaces well with custom logging functionalities your program may have. If no logger is provided then console is chosen as default. Here is an example with `winston` logging framework
-
-```
-    import { getSecrets, initializeStorage, localConfigStorage } from '@keeper-security/secrets-manager-core';
-    import {AzureKeyValueStorage, AzureSessionConfig,Logger} from "@keeper/secrets-manager-azure";
-    import winston from "winston";
-
-    class WinstonLogger implements Logger {
-        private logger: winston.Logger;
-
-        constructor() {
-            this.logger = winston.createLogger({
-                level: "info",
-                format: winston.format.combine(
-                    winston.format.timestamp(),
-                    winston.format.printf(({ level, message, timestamp }) => {
-                        return `${timestamp} | ${level.toUpperCase()} | ${message}`;
-                    })
-                ),
-                transports: [new winston.transports.Console()]
-            });
-        }
-
-        info(message: string, ...meta: any[]): void {
-            this.logger.info(message, ...meta);
-        }
-
-        warn(message: string, ...meta: any[]): void {
-            this.logger.warn(message, ...meta);
-        }
-
-        error(message: string, ...meta: any[]): void {
-            this.logger.error(message, ...meta);
-        }
-
-        debug(message: string, ...meta: any[]): void {
-            this.logger.debug?.(message, ...meta);
-        }
-    }
-
-    const getKeeperRecords = async () => {
-
-        const tenant_id="<tenant_id>" 
-        const client_id="<client_id>"
-        const client_secret="<client-secret>"
-        const azureSessionConfig = new AzureSessionConfig(tenant_id, client_id, client_secret)
-
-        
-        let config_path = "<path to client-config.json>"
-        let globalLogger = new WinstonLogger(); // one way to create a logger which intefraces perfectly with this integration
-        let globalLogger2 = winston.createLogger({transports: [new winston.transports.Console()]}); //second way to create a logger instance
-        
-        // oneTimeToken is used only once to initialize the storage
-        // after the first run, subsequent calls will use ksm-config.txt
-        const oneTimeToken = "[One Time Token]";
-        
-        const keyId = "https://<vault_name>.vault.azure.net/keys/<key_name>/<version>"
-        const storage = await new AzureKeyValueStorage(keyId,config_path,azureSessionConfig,globalLogger).init();
-        await initializeStorage(storage, oneTimeToken);
-        
-        // Using token only to generate a config (for later usage)
-        // requires at least one access operation to bind the token
         
         const {records} = await getSecrets({storage: storage});
         console.log(records)
