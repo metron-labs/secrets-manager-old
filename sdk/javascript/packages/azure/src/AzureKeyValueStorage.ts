@@ -259,9 +259,9 @@ export class AzureKeyValueStorage implements KeyValueStorage {
     private async createConfigFileIfMissing(): Promise<void> {
         try {
             await fs.access(this.configFileLocation);
-            this.logger.info("Config file already exists at:", this.configFileLocation);
+            this.logger.info(`Config file already exists at: ${this.configFileLocation.toString()}`);
         } catch {
-            this.logger.info("Config file does not exist at:", this.configFileLocation);
+            this.logger.info(`Config file already exists at: ${this.configFileLocation.toString()}`);
             const dir = dirname(this.configFileLocation);
             try {
                 await fs.access(dir);
@@ -271,7 +271,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
             // Encrypt an empty configuration and write to the file
             const blob = await encryptBuffer(this.cryptoClient, "{}", this.logger);
             await fs.writeFile(this.configFileLocation, blob);
-            this.logger.info("Config file created at:", this.configFileLocation);
+            this.logger.info(`Config file created at: ${this.configFileLocation.toString()}`);
         }
     }
 
