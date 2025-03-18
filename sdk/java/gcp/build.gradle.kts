@@ -17,6 +17,8 @@ dependencies {
 
  	implementation("com.keepersecurity.secrets-manager:core:17.0.0")
 	implementation ("com.google.cloud:google-cloud-kms:2.62.0")
+	implementation ("com.google.auth:google-auth-library-oauth2-http:1.33.1")
+
 	
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.18.2")
@@ -32,7 +34,7 @@ dependencies {
 // Apply a specific Java toolchain to ease working on different environments.
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of((System.getenv("JAVA_VERSION")?.toInt() ?: 11))
     }
 }
 

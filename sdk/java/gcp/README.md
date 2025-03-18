@@ -2,7 +2,7 @@
 
 Protect Secrets Manager connection details with GCP KMS
 
-Keeper Secrets Manager integrates with AWS KMS in order to provide protection for Keeper Secrets Manager configuration files.  With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
+Keeper Secrets Manager integrates with GCP KMS in order to provide protection for Keeper Secrets Manager configuration files.  With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
 Features
 
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with GCP KMS (Symmetric/Asymmetric Key) 
@@ -47,14 +47,18 @@ Cloud KMS Key Viewer permission to fetch key details. You can assign these roles
 
 dependencies {
 	implementation("com.keepersecurity.secrets-manager:core:17.0.0")
+	
 	implementation ("com.google.cloud:google-cloud-kms:2.62.0")
+	implementation ("com.google.auth:google-auth-library-oauth2-http:1.33.1")
 	    
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.18.2")
+	
 	implementation("com.google.code.gson:gson:2.12.1")
     implementation("org.slf4j:slf4j-api:1.7.32"){
         exclude("org.slf4j:slf4j-log4j12")
     }
+    
 	implementation("ch.qos.logback:logback-classic:1.2.6")
 	implementation("ch.qos.logback:logback-core:1.2.6")
 	implementation("org.bouncycastle:bc-fips:1.0.2.4")
@@ -80,6 +84,14 @@ dependencies {
    		 <artifactId>google-cloud-kms</artifactId>
     	<version>2.62.0</version>
 	 </dependency>
+	 
+	<!-- gcp auth -->
+	<dependency>
+	    <groupId>com.google.auth</groupId>
+	    <artifactId>google-auth-library-oauth2-http</artifactId>
+	    <version>1.33.1</version>
+	</dependency>
+	 
 		
 		<!--gson -->
 		<dependency>
