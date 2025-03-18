@@ -20,7 +20,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
     private keyId!: string;
     private azureCredentials!: ClientSecretCredential | DefaultAzureCredential;
     private cryptoClient!: CryptographyClient;
-    private config: Record<string, string>;
+    private config!: Record<string, string>;
     private lastSavedConfigHash!: string;
     private logger: Logger;
     private configFileLocation: string;
