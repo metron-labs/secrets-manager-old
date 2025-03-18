@@ -18,7 +18,7 @@ Prerequisites
 Setup
 1. Install KSM Storage Module
 
-The Secrets Manager HSM modules are located in the Keeper Secrets Manager storage module which can be installed using pip
+The Secrets Manager HSM modules are located in the Keeper Secrets Manager storage module which can be installed using `npm`
 
 > `npm install @keeper-security/secrets-manager-azure`
 
