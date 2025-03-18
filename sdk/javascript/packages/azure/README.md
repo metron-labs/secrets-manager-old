@@ -35,7 +35,7 @@ configuration variables can be provided as
     const azureSessionConfig = new AzureSessionConfig(tenant_id, client_id, client_secret)
 ```
 
-An access key using the `AzureSessionConfig` data class and providing  `tenant_id` , `client_id` and  `client_secret` variables.
+An authentication configuration is created using the `**AzureSessionConfig**` class, which requires the `tenant_id`, `client_id`, and `client_secret` parameters. This configuration is then used in the `**AzureKeyValueStorage**`.
 
 You will need an Azure App directory App to use the Azure Key Vault integration.
 
