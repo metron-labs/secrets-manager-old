@@ -16,8 +16,11 @@ import org.slf4j.LoggerFactory;
 **/
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.kms.model.DecryptRequest;
 import software.amazon.awssdk.services.kms.model.DecryptResponse;
@@ -38,6 +41,14 @@ public class AWSKMSClient {
 		kmsClient = KmsClient.builder().credentialsProvider(StaticCredentialsProvider.create(awsCreds))
 				.region(sessionConfig.getRegionName()).build();
 	}
+	
+	public AWSKMSClient(String profile) {
+		ProfileCredentialsProvider awsCreds = ProfileCredentialsProvider.create(profile);
+		kmsClient = KmsClient.builder()
+                .region(Region.AP_SOUTH_1)  // Specify the region
+                .credentialsProvider(awsCreds)  // Use default AWS credentials provider
+                .build();
+    }
 	
 	public byte[] encrypt(SdkBytes message, String keyId) throws Exception {
 		if (Constants.SYMMETRIC_DEFAULT.equals(getKeySpecType(keyId))) {

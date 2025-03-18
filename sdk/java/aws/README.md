@@ -126,23 +126,29 @@ dependencies {
    </details> 
   
   
-** Configure AWS Connection **
+# Configure AWS Connection **
 
+** Initializes AwsKeyValueStorage  **
 
 Configuration variables can be provided as 
 
- By default the @aws-sdk library will utilize the default connection session setup with the AWS CLI with the aws configure command.  If you would like to specify the connection details, the two configuration files located at `~/.aws/config` and ~/.aws/credentials can be manually edited.
+    key_id URI of the master key - if missing read from env AWS_KMS_KEY_ID
+    The keyId must be exported like "export AWS_KMS_KEY_ID = <Key Id>"
+    The master key needs encrypt, decrypt privileges ```
+    
+     config_file_location provides keeper config file location - if missing read from env param AWS_CONFIG_FILE
+     It can be export like "export AWS_CONFIG_FILE = <Config File location>"
+    
+ Ensure that you have valid AWS credentials. You can configure AWS credentials in the following ways:
+ 
+  1 : If you would like to specify the connection details, the two configuration files located at `~/.aws/config` and ~/.aws/credentials can be manually edited.
 
 See the AWS documentation for more information on setting up an AWS session: https://docs.aws.amazon.com/cli/latest/reference/configure/
 
-Alternatively, configuration variables can be provided explicitly as an access key using the AwsSessionConfig data class and providing `awsAccessKeyId`,  `awsSecretAccessKey` and  `region` variables.
+  2 : Alternatively, configuration variables can be provided explicitly as an access key using the AwsSessionConfig data class and providing `awsAccessKeyId`,  `awsSecretAccessKey` and `region` variables.
 
-You will need an AWS Access Key to use the AWS KMS integration.
-
-For more information on AWS Access Keys see the AWS documentation: https://aws.amazon.com/premiumsupport/knowledge-center/create-access-key/
-        
-        
-Initializes AwsKeyValueStorage
+You will need to generate access key ID and secret access key. For more information on Permissions see the AWS documentation: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
+                
 
 ```
    import com.keepersecurity.secretmanager.aws.kms.AwsKeyValueStorage;
@@ -152,16 +158,13 @@ Initializes AwsKeyValueStorage
      String awsAccessKeyId = "<AWS Access Id>";
 	 String awsSecretAccessKey = "<AWS Access Secret Key>";
 	 Region region = <Region>;
+	 
     AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
 ```
 
-An access key using the `AwsSessionConfig` data class and providing `awsAccessKeyId`,`awsSecretAccessKey` and `region` variables.
 
-You will need to generate access key ID and secret access key. 
 
-For more information on Permissions see the AWS documentation: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
-
-**Add AWS KMS Storage to Your Code**
+# Add AWS KMS Storage to Your Code**
 
 Now that the AWS connection has been configured, you need to tell the Secrets Manager SDK to utilize the KMS as storage.
 
@@ -186,14 +189,15 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 				    String awsSecretAccessKey = "<AWS Secret>";
 				    String oneTimeToken = "[One Time Token]";
 				    Region region = Region.<cloud-region>;
+				    String profile = null OR "DEFAULT";
 				    String configFileLocation = "client_config_test.json";
 				try{
 		    			//set AWS configuration	
 				    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
 				    //Get Storage 
-			  		AwsKeyValueStorage awskvstorage =  new AwsKeyValueStorage(keyId, configFileLocation, sessionConfig);
+			  		AwsKeyValueStorage awskvstorage =  new AwsKeyValueStorage(keyId, configFileLocation, profile, sessionConfig);
 				 	initializeStorage(awskvstorage, oneTimeToken);
-			         SecretsManagerOptions options = new SecretsManagerOptions(awskvstorage);
+			       SecretsManagerOptions options = new SecretsManagerOptions(awskvstorage);
 			    	 	//getSecrets(OPTIONS);
 				}catch (Exception e) {
 		  			  System.out.println(e.getMessage());

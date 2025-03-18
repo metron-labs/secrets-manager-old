@@ -65,14 +65,17 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 
 	private AWSKMSClient kmsClient;
 
-	public AwsKeyValueStorage(String keyId, String configFileLocation, AwsSessionConfig sessionConfig)
+	public AwsKeyValueStorage(String keyId, String configFileLocation, String profile, AwsSessionConfig sessionConfig)
 			throws Exception {
 		this.configFileLocation = configFileLocation != null ? configFileLocation
-				: System.getenv("KSM_CONFIG_FILE") != null ? System.getenv("KSM_CONFIG_FILE")
+				: System.getenv("AWS_CONFIG_FILE") != null ? System.getenv("AWS_CONFIG_FILE")
 						: this.defaultConfigFileLocation;
-		this.keyId = keyId != null ? keyId : System.getenv("KSM_AZ_KEY_ID");
+		this.keyId = keyId != null ? keyId : System.getenv("AWS_KMS_KEY_ID");
 		this.configMap = new HashMap<String, Object>();
-		kmsClient = new AWSKMSClient(sessionConfig);
+		
+		if(profile!=null || sessionConfig == null) kmsClient = new AWSKMSClient(profile);
+		else kmsClient = new AWSKMSClient(sessionConfig);
+		
 		logger.info("AWS KMS Client initiated.");
 		loadConfig();
 	}
@@ -85,9 +88,9 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	 * @return
 	 * @throws Exception
 	 */
-	public static AwsKeyValueStorage getInternalStorage(String keyId, String configFileLocation,
+	public static AwsKeyValueStorage getInternalStorage(String keyId, String configFileLocation, String profile,
 			AwsSessionConfig sessionConfig) throws Exception {
-		AwsKeyValueStorage storage = new AwsKeyValueStorage(keyId, configFileLocation, sessionConfig);
+		AwsKeyValueStorage storage = new AwsKeyValueStorage(keyId, configFileLocation, profile, sessionConfig);
 		return storage;
 	}
 	
