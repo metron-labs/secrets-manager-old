@@ -8,8 +8,10 @@ import { createHash } from 'crypto';
 import { KeyValueStorage, platform } from "@keeper-security/secrets-manager-core";
 import { AzureSessionConfig } from "./AzureSessionConfig";
 import { decryptBuffer, encryptBuffer } from "./utils";
-import { defaultLogger, Logger } from "./Logger";
-import { DEFAULT_AZURE_CREDENTIAL_ENVIRONMENTAL_VARIABLE, DEFAULT_JSON_INDENT, HEX_DIGEST, MD5_HASH } from "./constants";
+import { getLogger } from "./Logger";
+import { DEFAULT_AZURE_CREDENTIAL_ENVIRONMENTAL_VARIABLE, DEFAULT_JSON_INDENT, DEFAULT_LOG_LEVEL, HEX_DIGEST, MD5_HASH } from "./constants";
+import { Logger } from "pino";
+import { LoggerLogLevelOptions } from "./enum";
 
 
 export class AzureKeyValueStorage implements KeyValueStorage {
@@ -22,14 +24,6 @@ export class AzureKeyValueStorage implements KeyValueStorage {
     private lastSavedConfigHash!: string;
     private logger: Logger;
     private configFileLocation: string;
-
-    private setLogger(logger: Logger | null) {
-        if (logger) {
-            this.logger = logger;
-        } else {
-            this.logger = defaultLogger;
-        }
-    }
 
     getString(key: string): Promise<string | undefined> {
         return this.get(key);
@@ -57,7 +51,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
         return this.saveString(key, json);
     }
 
-    constructor(keyId: string, configFileLocation: string | null, azSessionConfig: AzureSessionConfig | null, logger: Logger | null) {
+    constructor(keyId: string, configFileLocation: string | null, azSessionConfig: AzureSessionConfig | null, logLevel: LoggerLogLevelOptions | null) {
         /** 
         Initilaizes AzureKeyValueStorage
 
@@ -73,16 +67,20 @@ export class AzureKeyValueStorage implements KeyValueStorage {
         **/
         this.configFileLocation = configFileLocation ?? process.env.KSM_CONFIG_FILE ?? this.defaultConfigFileLocation;
         this.keyId = keyId ?? process.env[DEFAULT_AZURE_CREDENTIAL_ENVIRONMENTAL_VARIABLE];
-        this.setLogger(logger);
+        this.logger = logLevel == null ? getLogger(DEFAULT_LOG_LEVEL) : getLogger(logLevel);
 
         if (azSessionConfig) {
+            this.logger.debug("validating azure credentials provided and selecting client based on provided credentials");
             const hasAzureSessionConfig = azSessionConfig.tenantId && azSessionConfig.clientId && azSessionConfig.clientSecret;
             if (hasAzureSessionConfig) {
+                this.logger.debug("azure credentials provided, selecting ClientSecretCredential");
                 this.azureCredentials = new ClientSecretCredential(azSessionConfig.tenantId, azSessionConfig.clientId, azSessionConfig.clientSecret);
             } else {
+                this.logger.debug("azure credentials not provided, selecting DefaultAzureCredential");
                 this.azureCredentials = new DefaultAzureCredential();
             }
         }
+        this.logger.debug("initializing crypto client with key id", this.keyId);
         this.cryptoClient = new CryptographyClient(this.keyId, this.azureCredentials);
 
         this.lastSavedConfigHash = "";
@@ -109,7 +107,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
             }
 
             if (contents.length === 0) {
-                this.logger.warn(`Empty config file ${this.configFileLocation}`);
+                this.logger.warn(`Empty config file ${this.configFileLocation}, selecting configuration as empty object`);
                 contents = Buffer.from("{}");
             }
 
@@ -132,7 +130,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
             }
 
             if (jsonError) {
-                const configJson = await decryptBuffer(this.cryptoClient, contents);
+                const configJson = await decryptBuffer(this.cryptoClient, contents, this.logger);
                 try {
                     config = JSON.parse(configJson);
                     this.config = config ?? {};
@@ -181,7 +179,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
 
             // Check if saving is necessary
             if (!force && configHash === this.lastSavedConfigHash) {
-                console.warn("Skipped config JSON save. No changes detected.");
+                this.logger.warn("Skipped config JSON save. No changes detected.");
                 return;
             }
 
@@ -189,14 +187,15 @@ export class AzureKeyValueStorage implements KeyValueStorage {
             await this.createConfigFileIfMissing();
 
             // Encrypt the config JSON and write to the file
-            const blob = await encryptBuffer(this.cryptoClient, JSON.stringify(this.config, Object.keys(this.config).sort(), DEFAULT_JSON_INDENT));
+            const stringifiedConfig = JSON.stringify(this.config, Object.keys(this.config).sort(), DEFAULT_JSON_INDENT);
+            const blob = await encryptBuffer(this.cryptoClient, stringifiedConfig, this.logger);
             await fs.writeFile(this.configFileLocation, blob);
 
             // Update the last saved config hash
             this.lastSavedConfigHash = configHash;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-            console.error("Error saving config:", err.message);
+            this.logger.error("Error saving config:", err.message);
         }
     }
 
@@ -219,7 +218,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
 
         try {
             // Decrypt the file contents
-            plaintext = await decryptBuffer(this.cryptoClient, ciphertext);
+            plaintext = await decryptBuffer(this.cryptoClient, ciphertext, this.logger);
             if (plaintext.length === 0) {
                 this.logger.error(`Failed to decrypt config file ${this.configFileLocation}`);
             } else if (autosave) {
@@ -260,9 +259,9 @@ export class AzureKeyValueStorage implements KeyValueStorage {
     private async createConfigFileIfMissing(): Promise<void> {
         try {
             await fs.access(this.configFileLocation);
-            console.log("Config file already exists at:", this.configFileLocation);
+            this.logger.info("Config file already exists at:", this.configFileLocation);
         } catch {
-            console.log("Config file does not exist at:", this.configFileLocation);
+            this.logger.info("Config file does not exist at:", this.configFileLocation);
             const dir = dirname(this.configFileLocation);
             try {
                 await fs.access(dir);
@@ -270,9 +269,9 @@ export class AzureKeyValueStorage implements KeyValueStorage {
                 await fs.mkdir(dir, { recursive: true });
             }
             // Encrypt an empty configuration and write to the file
-            const blob = await encryptBuffer(this.cryptoClient, "{}");
+            const blob = await encryptBuffer(this.cryptoClient, "{}", this.logger);
             await fs.writeFile(this.configFileLocation, blob);
-            console.log("Config file created at:", this.configFileLocation);
+            this.logger.info("Config file created at:", this.configFileLocation);
         }
     }
 
