@@ -15,7 +15,7 @@ import {
   MD5_HASH,
 } from "./constants";
 import { decryptBuffer, encryptBuffer } from "./utils";
-import {  getLogger  } from "./Logger";
+import { getLogger } from "./Logger";
 import { OCISessionConfig } from "./OciSessionConfig";
 import { KmsCryptoClient, KmsManagementClient } from "oci-keymanagement";
 import { GetKeyResponse } from "oci-keymanagement/lib/response";
@@ -96,22 +96,22 @@ export class OciKeyValueStorage implements KeyValueStorage {
     return this; // Return the instance to allow chaining
   }
 
-  private async getKeyDetails(){
+  private async getKeyDetails() {
     const opcRequestId = randomUUID();
     this.logger.info(`Making a getKey request with request Id ${opcRequestId}`);
-    const keyDetailsRequest : GetKeyRequest= {
-      keyId : this.keyId,
-      opcRequestId : opcRequestId
+    const keyDetailsRequest: GetKeyRequest = {
+      keyId: this.keyId,
+      opcRequestId: opcRequestId
     };
 
-    const keyDetails : GetKeyResponse= await this.managementClient.getKey(keyDetailsRequest);
-    const algorithm : KeyShape.Algorithm =  keyDetails.key.keyShape.algorithm;
+    const keyDetails: GetKeyResponse = await this.managementClient.getKey(keyDetailsRequest);
+    const algorithm: KeyShape.Algorithm = keyDetails.key.keyShape.algorithm;
 
-    if (algorithm == KeyShape.Algorithm.Aes){
+    if (algorithm == KeyShape.Algorithm.Aes) {
       this.isAsymmetric = false;
-    }else if (algorithm == KeyShape.Algorithm.Rsa){
+    } else if (algorithm == KeyShape.Algorithm.Rsa) {
       this.isAsymmetric = true;
-    }else{
+    } else {
       throw new OracleKeyValueStorageError(` given key has unsupported algorithm: ${algorithm}`);
     }
   }
@@ -172,7 +172,7 @@ export class OciKeyValueStorage implements KeyValueStorage {
           cryptoClient: this.cryptoClient,
           keyVersionId: this.keyVersion,
           isAsymmetric: this.isAsymmetric
-        },this.logger);
+        }, this.logger);
         try {
           config = JSON.parse(configJson);
           this.config = config ?? {};
@@ -265,7 +265,7 @@ export class OciKeyValueStorage implements KeyValueStorage {
         cryptoClient: this.cryptoClient,
         keyVersionId: this.keyVersion,
         isAsymmetric: this.isAsymmetric
-      },this.logger);
+      }, this.logger);
       await fs.writeFile(this.configFileLocation, blob);
 
       // Update the last saved config hash
@@ -303,7 +303,7 @@ export class OciKeyValueStorage implements KeyValueStorage {
         keyVersionId: this.keyVersion,
         isAsymmetric: this.isAsymmetric,
         ciphertext,
-      },this.logger);
+      }, this.logger);
       if (plaintext.length === 0) {
         this.logger.error(
           `Failed to decrypt config file ${this.configFileLocation}`
@@ -325,7 +325,7 @@ export class OciKeyValueStorage implements KeyValueStorage {
     return plaintext;
   }
 
-  public async changeKey(newKeyId: string, newKeyVersion: string|null): Promise<boolean> {
+  public async changeKey(newKeyId: string, newKeyVersion: string | null): Promise<boolean> {
     const oldKeyId = this.keyId;
     const oldCryptoClient = this.cryptoClient;
     const oldKeyVersion = this.keyVersion;
@@ -360,9 +360,9 @@ export class OciKeyValueStorage implements KeyValueStorage {
   private async createConfigFileIfMissing(): Promise<void> {
     try {
       await fs.access(this.configFileLocation);
-      this.logger.info("Config file already exists at:", this.configFileLocation);
+      this.logger.info("Config file already exists at: ", this.configFileLocation);
     } catch {
-      this.logger.info("Config file does not exist at:", this.configFileLocation);
+      this.logger.info("Config file does not exist at: ", this.configFileLocation);
       const dir = dirname(this.configFileLocation);
       try {
         await fs.access(dir);
@@ -376,9 +376,9 @@ export class OciKeyValueStorage implements KeyValueStorage {
         cryptoClient: this.cryptoClient,
         keyVersionId: this.keyVersion,
         isAsymmetric: this.isAsymmetric
-      },this.logger);
+      }, this.logger);
       await fs.writeFile(this.configFileLocation, blob);
-      this.logger.info("Config file created at:", this.configFileLocation);
+      this.logger.info("Config file created at: ", this.configFileLocation);
     }
   }
 
