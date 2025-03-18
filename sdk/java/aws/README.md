@@ -157,10 +157,9 @@ Initializes AwsKeyValueStorage
 
 An access key using the `AwsSessionConfig` data class and providing `awsAccessKeyId`,`awsSecretAccessKey` and `region` variables.
 
-You will need an Azure App directory App to use the Azure Key Vault integration.
+You will need to generate access key ID and secret access key. 
 
-
-For more information on Azure App Directory App registration and Permissions see the Azure documentation: https://learn.microsoft.com/en-us/azure/key-vault/general/authentication
+For more information on Permissions see the AWS documentation: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
 
 **Add AWS KMS Storage to Your Code**
 
