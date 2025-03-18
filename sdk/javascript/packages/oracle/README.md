@@ -51,7 +51,7 @@ The storage will require an `Oracle config file location`, `Oracle configuration
         const keyId = 'ocid1.key.oc1.iad.<>.<>';
         const keyVersionId = "ocid1.keyversion.oc1.iad.<>.<>";
 
-        const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path2, ociSessionConfig,logLevel).init();
+        const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path, ociSessionConfig,logLevel).init();
         await initializeStorage(storage, oneTimeToken);
 
         const { records } = await getSecrets({ storage: storage });
@@ -77,7 +77,7 @@ To change the Oracle KMS key used for encryption, you can call the `changeKey` m
 To decrypt the config file and save it again in plaintext, you can call the `decryptConfig` method on the `OciKeyValueStorage` instance.
 Note: this will compromise the security of the config file.
 ```
-    const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path2, ociSessionConfig).init();
+    const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path, ociSessionConfig).init();
     await storage.decryptConfig(true); // Saves to file
     const decryptedConfig = await storage.decryptConfig(true); // returns the decrypted config
 ```
