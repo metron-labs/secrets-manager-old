@@ -89,7 +89,7 @@ Note: this will compromise the security of the config file.
 
 
 ## Logging
-We support logging for the AWS KSM integration. Supported log levels are as follows
+We support logging for the Oracle Key Vault integration. Supported log levels are as follows
 * trace
 * debug
 * info
@@ -98,6 +98,6 @@ We support logging for the AWS KSM integration. Supported log levels are as foll
 * fatal
 All these levels should be accessed from the LoggerLogLevelOptions enum. If no log level is set, the default log level is info. We can set the logging level to debug to get more information about the integration.
 
-You're ready to use the KSM integration Using the AWS KMS Integration 👍
+You're ready to use the KSM integration Using the Oracle KMS Integration 👍
 
-Once setup, the Secrets Manager AWS KMS integration supports all Secrets Manager JavaScript SDK functionality.  Your code will need to be able to access the AWS KMS APIs in order to manage the decryption of the configuration file when run. 
+Once setup, the Secrets Manager Oracle KMS integration supports all Secrets Manager JavaScript SDK functionality.  Your code will need to be able to access the Oracle KMS APIs in order to manage the decryption of the configuration file when run. 
