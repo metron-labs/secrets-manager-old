@@ -50,6 +50,7 @@ Now that the Azure connection has been configured, you need to tell the Secrets 
 To do this, use AzureKeyValueStorage as your Secrets Manager storage in the SecretsManager constructor.
 
 The storage will require an Azure Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by Azure Key Vault.
+
 azure_keyvault_example_custom.ts 
 ```
     import { getSecrets, initializeStorage, localConfigStorage } from '@keeper-security/secrets-manager-core';
