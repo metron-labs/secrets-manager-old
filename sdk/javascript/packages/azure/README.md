@@ -84,12 +84,8 @@ azure_keyvault_example_custom.ts
     getKeeperRecords()
 ```
 
-You're ready to use the KSM integration 👍
-Using the Azure Key Vault Integration
 
-Once setup, the Secrets Manager Azure Key Vault integration supports all Secrets Manager JavaScript SDK functionality. Your code will need to be able to access the Azure Key Vault APIs in order to manage the decryption of the configuration file when run. 
-
-Change Key used to change the key configuration of the encrypted KSM configuration file.
+## Change Key used to change the key configuration of the encrypted KSM configuration file.
 ```
     import { getSecrets, initializeStorage, localConfigStorage } from '@keeper-security/secrets-manager-core';
     import {AzureKeyValueStorage, AzureSessionConfig} from "@keeper/secrets-manager-azure";
@@ -123,3 +119,28 @@ Change Key used to change the key configuration of the encrypted KSM configurati
     console.log("start")
     getKeeperRecords()
 ```
+
+## decrypt config
+
+To decrypt the config file and save it again in plaintext, you can call the `decryptConfig` method on the `OciKeyValueStorage` instance.
+Note: this will compromise the security of the config file.
+```
+    const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path, ociSessionConfig).init();
+    await storage.decryptConfig(true); // Saves to file
+    const decryptedConfig = await storage.decryptConfig(true); // returns the decrypted config
+```
+
+
+## Logging
+We support logging for the Oracle Key Vault integration. Supported log levels are as follows
+* trace
+* debug
+* info
+* warn
+* error
+* fatal
+
+You're ready to use the KSM integration 👍
+Using the Azure Key Vault Integration
+
+Once setup, the Secrets Manager Azure Key Vault integration supports all Secrets Manager JavaScript SDK functionality. Your code will need to be able to access the Azure Key Vault APIs in order to manage the decryption of the configuration file when run. 

@@ -199,7 +199,7 @@ export class AzureKeyValueStorage implements KeyValueStorage {
         }
     }
 
-    public async decryptConfig(autosave: boolean = true): Promise<string> {
+    public async decryptConfig(autosave: boolean): Promise<string> {
         let ciphertext: Buffer;
         let plaintext: string = "";
 
