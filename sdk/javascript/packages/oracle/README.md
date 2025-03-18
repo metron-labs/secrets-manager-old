@@ -43,7 +43,7 @@ The storage will require an `Config file location`, `configuration profile`(if t
         const kmsManagementEndpoint = "https://<>-management.kms.<location>.oraclecloud.com";
 
         const ociSessionConfig = await new OCISessionConfig(configFileLocation, profile, kmsCryptoEndpoint,kmsManagementEndpoint);
-
+        const logLevel = LoggerLogLevelOptions.info;
         let config_path = "<configFilePath>";
 
         // oneTimeToken is used only once to initialize the storage
@@ -53,7 +53,7 @@ The storage will require an `Config file location`, `configuration profile`(if t
         const keyId = 'ocid1.key.oc1.iad.<>.<>';
         const keyVersionId = "ocid1.keyversion.oc1.iad.<>.<>";
 
-        const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path2, ociSessionConfig).init();
+        const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path2, ociSessionConfig,logLevel).init();
         // await storage.changeKey(keyId);
         await initializeStorage(storage, ott2);
 
@@ -88,8 +88,16 @@ Note: this will compromise the security of the config file.
 ```
 
 
-Once set up, the Secrets Manager OCI KMS integration supports all Secrets Manager JavaScript SDK functionality.
+## Logging
+We support logging for the AWS KSM integration. Supported log levels are as follows
+* trace
+* debug
+* info
+* warn
+* error
+* fatal
+All these levels should be accessed from the LoggerLogLevelOptions enum. If no log level is set, the default log level is info. We can set the logging level to debug to get more information about the integration.
 
-Your code will need access to the OCI KMS APIs to manage encryption and decryption of the configuration file at runtime.
+You're ready to use the KSM integration Using the AWS KMS Integration 👍
 
-Let me know if you need further refinements! 🚀
+Once setup, the Secrets Manager AWS KMS integration supports all Secrets Manager JavaScript SDK functionality.  Your code will need to be able to access the AWS KMS APIs in order to manage the decryption of the configuration file when run. 

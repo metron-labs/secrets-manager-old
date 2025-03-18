@@ -10,17 +10,20 @@ import {
 import { OciKmsClient } from "./OciKmsClient";
 import {
   DEFAULT_JSON_INDENT,
+  DEFAULT_LOG_LEVEL,
   HEX_DIGEST,
   MD5_HASH,
 } from "./constants";
 import { decryptBuffer, encryptBuffer } from "./utils";
-import { defaultLogger, Logger } from "./Logger";
+import {  getLogger  } from "./Logger";
 import { OCISessionConfig } from "./OciSessionConfig";
 import { KmsCryptoClient, KmsManagementClient } from "oci-keymanagement";
 import { GetKeyResponse } from "oci-keymanagement/lib/response";
 import { GetKeyRequest } from "oci-keymanagement/lib/request";
 import { KeyShape } from "oci-keymanagement/lib/model";
 import { OracleKeyValueStorageError } from "./error";
+import { LoggerLogLevelOptions } from "./enum";
+import { Logger } from "pino";
 
 export class OciKeyValueStorage implements KeyValueStorage {
   defaultConfigFileLocation: string = "client-config.json";
@@ -34,19 +37,11 @@ export class OciKeyValueStorage implements KeyValueStorage {
   keyVersion: string;
   isAsymmetric: boolean;
 
-  setLogger(logger: Logger | null) {
-    if (logger) {
-      this.logger = logger;
-    } else {
-      this.logger = defaultLogger;
-    }
-  }
-
-  getString(key: string): Promise<string | undefined> {
+  public getString(key: string): Promise<string | undefined> {
     return this.get(key);
   }
 
-  saveString(key: string, value: string): Promise<void> {
+  public saveString(key: string, value: string): Promise<void> {
     return this.set(key, value);
   }
 
@@ -58,18 +53,18 @@ export class OciKeyValueStorage implements KeyValueStorage {
     return undefined;
   }
 
-  saveBytes(key: string, value: Uint8Array): Promise<void> {
+  public saveBytes(key: string, value: Uint8Array): Promise<void> {
     const bytesString = platform.bytesToBase64(value);
     return this.set(key, bytesString);
   }
 
-  getObject?<T>(key: string): Promise<T | undefined> {
+  public getObject?<T>(key: string): Promise<T | undefined> {
     return this.getString(key).then((value) =>
       value ? (JSON.parse(value) as T) : undefined
     );
   }
 
-  saveObject?<T>(key: string, value: T): Promise<void> {
+  public saveObject?<T>(key: string, value: T): Promise<void> {
     const json = JSON.stringify(value);
     return this.saveString(key, json);
   }
@@ -79,7 +74,7 @@ export class OciKeyValueStorage implements KeyValueStorage {
     keyVersion: string | null,
     configFileLocation: string | null,
     OciSessionConfig: OCISessionConfig,
-    logger: Logger | null
+    logLevel: LoggerLogLevelOptions | null
   ) {
     this.configFileLocation =
       configFileLocation ??
@@ -87,21 +82,21 @@ export class OciKeyValueStorage implements KeyValueStorage {
       this.defaultConfigFileLocation;
     this.keyId = keyId;
     this.keyVersion = keyVersion ?? "";
-    this.setLogger(logger);
+    this.logger = logLevel == null ? getLogger(DEFAULT_LOG_LEVEL) : getLogger(logLevel);
     const ociKmsClient = new OciKmsClient(OciSessionConfig);
     this.cryptoClient = ociKmsClient.getCryptoClient();
     this.managementClient = ociKmsClient.getManagementClient();
     this.lastSavedConfigHash = "";
   }
 
-  async init() {
+  public async init() {
     await this.getKeyDetails();
     await this.loadConfig();
     this.logger.info(`Loaded config file from ${this.configFileLocation}`);
     return this; // Return the instance to allow chaining
   }
 
-  async getKeyDetails(){
+  private async getKeyDetails(){
     const opcRequestId = randomUUID();
     this.logger.info(`Making a getKey request with request Id ${opcRequestId}`);
     const keyDetailsRequest : GetKeyRequest= {
@@ -177,7 +172,7 @@ export class OciKeyValueStorage implements KeyValueStorage {
           cryptoClient: this.cryptoClient,
           keyVersionId: this.keyVersion,
           isAsymmetric: this.isAsymmetric
-        });
+        },this.logger);
         try {
           config = JSON.parse(configJson);
           this.config = config ?? {};
@@ -251,7 +246,7 @@ export class OciKeyValueStorage implements KeyValueStorage {
 
       // Check if saving is necessary
       if (!force && configHash === this.lastSavedConfigHash) {
-        console.warn("Skipped config JSON save. No changes detected.");
+        this.logger.warn("Skipped config JSON save. No changes detected.");
         return;
       }
 
@@ -270,14 +265,14 @@ export class OciKeyValueStorage implements KeyValueStorage {
         cryptoClient: this.cryptoClient,
         keyVersionId: this.keyVersion,
         isAsymmetric: this.isAsymmetric
-      });
+      },this.logger);
       await fs.writeFile(this.configFileLocation, blob);
 
       // Update the last saved config hash
       this.lastSavedConfigHash = configHash;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error("Error saving config:", err.message);
+      this.logger.error("Error saving config:", err.message);
     }
   }
 
@@ -308,7 +303,7 @@ export class OciKeyValueStorage implements KeyValueStorage {
         keyVersionId: this.keyVersion,
         isAsymmetric: this.isAsymmetric,
         ciphertext,
-      });
+      },this.logger);
       if (plaintext.length === 0) {
         this.logger.error(
           `Failed to decrypt config file ${this.configFileLocation}`
@@ -365,9 +360,9 @@ export class OciKeyValueStorage implements KeyValueStorage {
   private async createConfigFileIfMissing(): Promise<void> {
     try {
       await fs.access(this.configFileLocation);
-      console.log("Config file already exists at:", this.configFileLocation);
+      this.logger.info("Config file already exists at:", this.configFileLocation);
     } catch {
-      console.log("Config file does not exist at:", this.configFileLocation);
+      this.logger.info("Config file does not exist at:", this.configFileLocation);
       const dir = dirname(this.configFileLocation);
       try {
         await fs.access(dir);
@@ -381,29 +376,29 @@ export class OciKeyValueStorage implements KeyValueStorage {
         cryptoClient: this.cryptoClient,
         keyVersionId: this.keyVersion,
         isAsymmetric: this.isAsymmetric
-      });
+      },this.logger);
       await fs.writeFile(this.configFileLocation, blob);
-      console.log("Config file created at:", this.configFileLocation);
+      this.logger.info("Config file created at:", this.configFileLocation);
     }
   }
 
-  public async readStorage(): Promise<Record<string, string>> {
+  private async readStorage(): Promise<Record<string, string>> {
     if (!this.config) {
       await this.loadConfig();
     }
     return Promise.resolve(this.config);
   }
 
-  public saveStorage(updatedConfig: Record<string, string>): Promise<void> {
+  private saveStorage(updatedConfig: Record<string, string>): Promise<void> {
     return this.saveConfig(updatedConfig);
   }
 
-  public async get(key: string): Promise<string> {
+  private async get(key: string): Promise<string> {
     const config = await this.readStorage();
     return Promise.resolve(config[key]);
   }
 
-  public async set(key: string, value: string): Promise<void> {
+  private async set(key: string, value: string): Promise<void> {
     const config = await this.readStorage();
     config[key] = value;
     await this.saveStorage(config);
@@ -421,18 +416,18 @@ export class OciKeyValueStorage implements KeyValueStorage {
     await this.saveStorage(config);
   }
 
-  public async deleteAll(): Promise<void> {
+  private async deleteAll(): Promise<void> {
     await this.readStorage();
     Object.keys(this.config).forEach((key) => delete this.config[key]);
     await this.saveStorage({});
   }
 
-  public async contains(key: string): Promise<boolean> {
+  private async contains(key: string): Promise<boolean> {
     const config = await this.readStorage();
     return Promise.resolve(key in Object.keys(config));
   }
 
-  public async isEmpty(): Promise<boolean> {
+  private async isEmpty(): Promise<boolean> {
     const config = await this.readStorage();
     return Promise.resolve(Object.keys(config).length === 0);
   }
