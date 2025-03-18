@@ -178,7 +178,7 @@ the module interfaces well with custom logging functionalities your program may 
         // after the first run, subsequent calls will use ksm-config.txt
         const oneTimeToken = "[One Time Token]";
         
-        const keyId = 'https://<vault_name>/keys/<key_name>/<version>'
+        const keyId = "https://<vault_name>.vault.azure.net/keys/<key_name>/<version>"
         const storage = await new AzureKeyValueStorage(keyId,config_path,azureSessionConfig,globalLogger).init();
         await initializeStorage(storage, oneTimeToken);
         
