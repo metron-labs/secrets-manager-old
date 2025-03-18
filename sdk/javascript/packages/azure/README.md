@@ -66,8 +66,6 @@ azure_keyvault_example_custom.ts
         let config_path = "<path to client-config.json>"
         const logLevel = LoggerLogLevelOptions.info;
 
-        const logLevel = LoggerLogLevelOptions.info;
-
         // oneTimeToken is used only once to initialize the storage
         // after the first run, subsequent calls will use ksm-config.txt
         const oneTimeToken = "[One Time Token]";
