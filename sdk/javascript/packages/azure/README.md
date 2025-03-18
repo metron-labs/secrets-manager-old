@@ -89,7 +89,7 @@ Using the Azure Key Vault Integration
 
 Once setup, the Secrets Manager Azure Key Vault integration supports all Secrets Manager JavaScript SDK functionality. Your code will need to be able to access the Azure Key Vault APIs in order to manage the decryption of the configuration file when run. 
 
-Change Key used to encrypt the configuration file
+Change Key used to change the key configuration of the encrypted KSM configuration file.
 ```
     import { getSecrets, initializeStorage, localConfigStorage } from '@keeper-security/secrets-manager-core';
     import {AzureKeyValueStorage, AzureSessionConfig} from "@keeper/secrets-manager-azure";
