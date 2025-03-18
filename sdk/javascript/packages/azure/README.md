@@ -102,7 +102,7 @@ Change Key used to encrypt the configuration file
         
         // oneTimeToken is used only once to initialize the storage
         // after the first run, subsequent calls will use ksm-config.txt
-        const oneTimeToken = "US:kYKVGFJ2605-9UBF4VXd14AztMPXcxZ56zC9gr7O-Cw";
+        const oneTimeToken = "[One Time Token]";
         
         const keyId = 'https://<vault_name>.vault.azure.net/keys/<key_name>/<version>'
         const keyId2 = "https://<vault_name>.vault.azure.net/keys/<key_name>/<version>"
