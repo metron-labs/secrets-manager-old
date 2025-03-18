@@ -103,7 +103,6 @@ azure_keyvault_example_custom.ts
         // oneTimeToken is used only once to initialize the storage
         // after the first run, subsequent calls will use ksm-config.txt
         const oneTimeToken = "[One Time Token]";
-        const oneTimeToken = "[One Time Token]";
         
         const keyId = 'https://<vault_name>.vault.azure.net/keys/<key_name>/<version>'
         const keyId2 = "https://<vault_name>.vault.azure.net/keys/<key_name>/<version>"
