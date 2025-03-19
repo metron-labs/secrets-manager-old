@@ -4,6 +4,7 @@ import {
   DecryptCommand,
   EncryptCommandInput,
   DecryptCommandOutput,
+  EncryptionAlgorithmSpec,
 } from "@aws-sdk/client-kms";
 import { DecryptBufferOptions, EncryptBufferOptions } from "./interface";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
@@ -45,10 +46,10 @@ export async function encryptBuffer(
     }
 
     const encryptCommandPayload = new EncryptCommand(encryptCommandOptions);
-    const response: EncryptResponse = await options.cryptoClient.send(
+    const response : EncryptResponse = await options.cryptoClient.send(
       encryptCommandPayload
     );
-    const CiphertextBlob = Buffer.from(response.CiphertextBlob);
+    const CiphertextBlob = response.CiphertextBlob ? Buffer.from(response.CiphertextBlob) : Buffer.alloc(0);
     // Build the blob
     const parts = [CiphertextBlob, nonce, tag, ciphertext];
 
@@ -114,7 +115,7 @@ export async function decryptBuffer(
     };
 
     if (options.keyType === KeySpecEnum.SYMMETRIC_DEFAULT) {
-      delete decryptCommandOptions.EncryptionAlgorithm;
+      decryptCommandOptions.EncryptionAlgorithm = EncryptionAlgorithmSpec.SYMMETRIC_DEFAULT;
     }
 
     const decryptCommandPayload: DecryptCommand = new DecryptCommand(
@@ -124,7 +125,10 @@ export async function decryptBuffer(
       decryptCommandPayload
     );
     const key = response.Plaintext;
-
+    if (!key) {
+      logger.debug("Failed to retrieve plaintext key from decrypt command response as it was either empty or undefined.");
+      throw new Error("Failed to retrieve plaintext key from decrypt command response.");
+    }
     // Decrypt the message using AES-GCM
     const decipher = createDecipheriv(AES_256_GCM, key, nonce);
     decipher.setAuthTag(tag);
