@@ -430,8 +430,6 @@ export class AWSKeyValueStorage implements KeyValueStorage {
     }
   }
 
-
-
   public async readStorage(): Promise<Record<string, string>> {
     if (!this.config) {
       await this.loadConfig();
