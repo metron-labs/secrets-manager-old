@@ -14,7 +14,7 @@ import { EncryptDataDetails } from "oci-keymanagement/lib/model";
 import { Logger } from "pino";
 
 export async function encryptBuffer(
-  options: EncryptBufferOptions,logger : Logger
+  options: EncryptBufferOptions, logger: Logger
 ): Promise<Buffer> {
   try {
     logger.debug("started encryption buffer");
@@ -31,7 +31,7 @@ export async function encryptBuffer(
       cipher.final(),
     ]);
     const tag = cipher.getAuthTag();
-    
+
     logger.debug("creating encryption request payload");
     const encryptRequest: EncryptRequest = {
       encryptDataDetails: {
@@ -45,13 +45,13 @@ export async function encryptBuffer(
       encryptRequest.encryptDataDetails.keyVersionId = options.keyVersionId;
     }
 
-    if(options.isAsymmetric) {
+    if (options.isAsymmetric) {
       logger.debug(`adding encryption value as ${EncryptDataDetails.EncryptionAlgorithm.RsaOaepSha256} to payload`);
       encryptRequest.encryptDataDetails.encryptionAlgorithm = EncryptDataDetails.EncryptionAlgorithm.RsaOaepSha256;
     }
 
-    const response : EncryptResponse= await options.cryptoClient.encrypt(encryptRequest);
-   logger.debug("encryption successful from Oracle side");
+    const response: EncryptResponse = await options.cryptoClient.encrypt(encryptRequest);
+    logger.debug("encryption successful from Oracle side");
 
     const CiphertextBlob = Buffer.from(Buffer.from(response.encryptedData.ciphertext, BASE_64).toString(LATIN1_ENCODING), LATIN1_ENCODING); // making a latin1 buffer from byte64 buffer
 
@@ -77,10 +77,10 @@ export async function encryptBuffer(
 }
 
 export async function decryptBuffer(
-  options: DecryptBufferOptions,logger : Logger
+  options: DecryptBufferOptions, logger: Logger
 ): Promise<string> {
   try {
-    logger.debug("Started decryption")
+    logger.debug("Started decryption");
     // Validate BLOB_HEADER
     const header = Buffer.from(options.ciphertext.subarray(0, 2));
     if (!header.equals(Buffer.from(BLOB_HEADER, LATIN1_ENCODING))) {
@@ -129,7 +129,7 @@ export async function decryptBuffer(
       decryptOptions.decryptDataDetails.keyVersionId = options.keyVersionId;
     }
 
-    if(options.isAsymmetric) {
+    if (options.isAsymmetric) {
       logger.debug(`adding encryption value as ${EncryptDataDetails.EncryptionAlgorithm.RsaOaepSha256} to decryption payload`);
       decryptOptions.decryptDataDetails.encryptionAlgorithm = EncryptDataDetails.EncryptionAlgorithm.RsaOaepSha256;
     };
@@ -137,7 +137,7 @@ export async function decryptBuffer(
     const response: DecryptResponse = await options.cryptoClient.decrypt(
       decryptOptions
     );
-    
+
     const decryptedKey = response.decryptedData.plaintext;
 
     const verificationStatus = await verifyDecryption(decryptedKey, response.decryptedData.plaintextChecksum);
