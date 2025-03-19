@@ -394,32 +394,34 @@ export class AWSKeyValueStorage implements KeyValueStorage {
 
   private async createConfigFileIfMissing(): Promise<void> {
     try {
-      // Check if the config file already exists
-      if (await !fs.access(this.configFileLocation)) {
-        // Ensure the directory structure exists
-        const dir = dirname(this.configFileLocation);
-        if (await !fs.access(dir)) {
-          fs.mkdir(dir, { recursive: true });
-        }
-
-        // Encrypt an empty configuration and write to the file
-        const blob = await encryptBuffer({
-          keyId: this.keyId,
-          encryptionAlgorithm: this.encryptionAlgorithm,
-          message: "{}",
-          keyType: this.keyType,
-          cryptoClient: this.cryptoClient,
-        }, this.logger);
-        await fs.writeFile(this.configFileLocation, blob);
-        this.logger.info("Config file created at:", this.configFileLocation.toString());
-      } else {
-        this.logger.info("Config file already exists at:", this.configFileLocation.toString());
+      // Check if the config file exists
+      await fs.access(this.configFileLocation);
+      this.logger.info(`Config file already exists at: ${this.configFileLocation.toString()}`);
+    } catch {
+      // If file does not exist, proceed to create it
+  
+      // Ensure the directory structure exists
+      const dir = dirname(this.configFileLocation);
+      try {
+        await fs.access(dir); // Check if directory exists
+      } catch {
+        await fs.mkdir(dir, { recursive: true }); // Create directory if missing
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      this.logger.error("Error creating config file:", err.message.toString());
+  
+      // Encrypt an empty configuration and write to the file
+      const blob = await encryptBuffer({
+        keyId: this.keyId,
+        encryptionAlgorithm: this.encryptionAlgorithm,
+        message: "{}",
+        keyType: this.keyType,
+        cryptoClient: this.cryptoClient,
+      }, this.logger);
+  
+      await fs.writeFile(this.configFileLocation, blob);
+      this.logger.info(`Config file created at: ${this.configFileLocation.toString()}`);
     }
   }
+
 
   public async readStorage(): Promise<Record<string, string>> {
     if (!this.config) {
