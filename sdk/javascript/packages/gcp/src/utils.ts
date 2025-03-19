@@ -136,7 +136,9 @@ async function encryptDataAndValidateCRC(
         logger.error("Ciphertext is null or undefined");
         throw new Error("Ciphertext is null or undefined");
     }
-    const cipherTextCrc = calculate(Buffer.from(ciphertext));
+    const cipherTextCrc = calculate(
+        typeof ciphertext === "string" ? Buffer.from(ciphertext, LATIN1_ENCODING) : Buffer.from(ciphertext)
+    );
     if (!encryptResponse.verifiedPlaintextCrc32c) {
         throw new Error("Encrypt: request corrupted in-transit");
     }
