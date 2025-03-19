@@ -358,12 +358,17 @@ export class AWSKeyValueStorage implements KeyValueStorage {
     return plaintext;
   }
 
-  public async changeKey(newKeyId: string): Promise<boolean> {
+  public async changeKey(newKeyId: string,newAwsConfig ?: AWSSessionConfig): Promise<boolean> {
     const oldKeyId = this.keyId;
     const oldCryptoClient = this.cryptoClient;
+    const oldAwsCredentials = this.awsCredentials; 
 
     try {
       // Update the key and reinitialize the CryptographyClient
+      if(newAwsConfig){
+        this.logger.info(`Changing key to ${newKeyId} for config '${this.configFileLocation.toString()}'`);
+        this.awsCredentials = newAwsConfig;
+      }
       const config = this.config;
       if (Object.keys(config).length == 0) {
         await this.init();
@@ -374,6 +379,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Restore the previous key and crypto client if the operation fails
+      this.awsCredentials = oldAwsCredentials;
       this.keyId = oldKeyId;
       this.cryptoClient = oldCryptoClient;
       this.logger.error(
