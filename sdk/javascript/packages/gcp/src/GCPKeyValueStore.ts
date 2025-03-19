@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { dirname } from "path";
+import { dirname, resolve } from "path";
 import { createHash } from "crypto";
 
 import {
@@ -400,16 +400,27 @@ export class GCPKeyValueStorage implements KeyValueStorage {
 
   private async createConfigFileIfMissing(): Promise<void> {
     try {
-      await fs.access(this.configFileLocation);
-      this.logger.info(`Config file already exists at: ${this.configFileLocation}`);
+      // Ensure the config file path is absolute
+      const configPath = resolve(this.configFileLocation);
+
+      // Check if the config file exists
+      await fs.access(configPath);
+      this.logger.info(`Config file already exists at: ${configPath}`);
     } catch {
-      this.logger.info(`Config file does not exist at: ${this.configFileLocation}`);
-      const dir = dirname(this.configFileLocation);
+      // If file does not exist, proceed to create it
+
       try {
-        await fs.access(dir);
+        const dir = dirname(resolve(this.configFileLocation)); // Ensure absolute directory path
+
+        try {
+          await fs.access(dir); // Check if directory exists
+        } catch {
+          await fs.mkdir(dir, { recursive: true }); // Create directory if missing
+        }
       } catch {
-        await fs.mkdir(dir, { recursive: true });
+        await fs.mkdir(process.cwd(), { recursive: true }); // Use the working directory as fallback
       }
+
       // Encrypt an empty configuration and write to the file
       const blob = await encryptBuffer({
         isAsymmetric: this.isAsymmetric,
@@ -419,8 +430,9 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         encryptionAlgorithm: this.encryptionAlgorithm,
         keyProperties: this.gcpKeyConfig
       }, this.logger);
-      await fs.writeFile(this.configFileLocation, blob);
-      this.logger.info(`Config file created at ${this.configFileLocation}`);
+      const configPath = resolve(this.configFileLocation);
+      await fs.writeFile(configPath, blob);
+      this.logger.info(`Config file created at: ${configPath}`);
     }
   }
 
