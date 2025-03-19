@@ -11,11 +11,13 @@ import {
 import { DecryptResponse, EncryptResponse } from "oci-keymanagement/lib/response";
 import { calculate } from "fast-crc32c";
 import { EncryptDataDetails } from "oci-keymanagement/lib/model";
+import { Logger } from "pino";
 
 export async function encryptBuffer(
-  options: EncryptBufferOptions
+  options: EncryptBufferOptions, logger: Logger
 ): Promise<Buffer> {
   try {
+    logger.debug("started encryption buffer");
     // Generate a random 32-byte key
     const key = randomBytes(32);
 
@@ -30,21 +32,27 @@ export async function encryptBuffer(
     ]);
     const tag = cipher.getAuthTag();
 
+    logger.debug("creating encryption request payload");
     const encryptRequest: EncryptRequest = {
       encryptDataDetails: {
         keyId: options.keyId,
         plaintext: key.toString(BASE_64),
       },
     };
+
     if (options.keyVersionId) {
+      logger.debug(`adding key version Id ${options.keyVersionId} to payload`);
       encryptRequest.encryptDataDetails.keyVersionId = options.keyVersionId;
     }
 
-    if(options.isAsymmetric) {
+    if (options.isAsymmetric) {
+      logger.debug(`adding encryption value as ${EncryptDataDetails.EncryptionAlgorithm.RsaOaepSha256} to payload`);
       encryptRequest.encryptDataDetails.encryptionAlgorithm = EncryptDataDetails.EncryptionAlgorithm.RsaOaepSha256;
     }
-    const response : EncryptResponse= await options.cryptoClient.encrypt(encryptRequest);
-   
+
+    const response: EncryptResponse = await options.cryptoClient.encrypt(encryptRequest);
+    logger.debug("encryption successful from Oracle side");
+
     const CiphertextBlob = Buffer.from(Buffer.from(response.encryptedData.ciphertext, BASE_64).toString(LATIN1_ENCODING), LATIN1_ENCODING); // making a latin1 buffer from byte64 buffer
 
     // Build the blob
@@ -59,8 +67,8 @@ export async function encryptBuffer(
     }
     const blob = Buffer.concat(buffers);
 
+    logger.debug("Completed encryption of data provided");
     return blob;
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error("OCI KMS Storage failed to encrypt:", err.message);
@@ -69,12 +77,14 @@ export async function encryptBuffer(
 }
 
 export async function decryptBuffer(
-  options: DecryptBufferOptions
+  options: DecryptBufferOptions, logger: Logger
 ): Promise<string> {
   try {
+    logger.debug("Started decryption");
     // Validate BLOB_HEADER
     const header = Buffer.from(options.ciphertext.subarray(0, 2));
     if (!header.equals(Buffer.from(BLOB_HEADER, LATIN1_ENCODING))) {
+      logger.debug("Header validation failed for encrypted data, maybe data has been altered?");
       throw new Error("Invalid ciphertext structure: missing header.");
     }
 
@@ -85,6 +95,7 @@ export async function decryptBuffer(
     for (let i = 0; i < 4; i++) {
       const sizeBuffer = options.ciphertext.subarray(pos, pos + 2); // Read the size (2 bytes)
       if (sizeBuffer.length !== 2) {
+        logger.debug("cipher text structure is not matching, maybe the data is corrupt?");
         throw new Error("Invalid ciphertext structure: size buffer length mismatch.");
       }
       pos += 2;
@@ -92,6 +103,7 @@ export async function decryptBuffer(
       const partLength = sizeBuffer.readUInt16BE(0); // Parse length as big-endian
       const part = options.ciphertext.subarray(pos, pos + partLength);
       if (part.length !== partLength) {
+        logger.debug("Cipher text structure altered. data corruption occurred.");
         throw new Error("Invalid ciphertext structure: part length mismatch.");
       }
       pos += partLength;
@@ -100,6 +112,7 @@ export async function decryptBuffer(
     }
 
     if (parts.length !== 4) {
+      logger.debug("Cipher text structure altered. data corruption occurred.");
       throw new Error("Invalid ciphertext structure: incorrect number of parts.");
     }
 
@@ -112,21 +125,24 @@ export async function decryptBuffer(
       }
     };
     if (options.keyVersionId) {
+      logger.debug(`adding key version Id ${options.keyVersionId} to decryption payload`);
       decryptOptions.decryptDataDetails.keyVersionId = options.keyVersionId;
     }
 
-    if(options.isAsymmetric) {
+    if (options.isAsymmetric) {
+      logger.debug(`adding encryption value as ${EncryptDataDetails.EncryptionAlgorithm.RsaOaepSha256} to decryption payload`);
       decryptOptions.decryptDataDetails.encryptionAlgorithm = EncryptDataDetails.EncryptionAlgorithm.RsaOaepSha256;
     };
 
     const response: DecryptResponse = await options.cryptoClient.decrypt(
       decryptOptions
     );
-    
+
     const decryptedKey = response.decryptedData.plaintext;
 
     const verificationStatus = await verifyDecryption(decryptedKey, response.decryptedData.plaintextChecksum);
     if (verificationStatus) {
+      logger.debug("checksum validation failed while transporting data to oracle");
       throw new Error("Invalid ciphertext structure: checksum mismatch.");
     }
 
@@ -140,6 +156,7 @@ export async function decryptBuffer(
       decipher.final(),
     ]);
 
+    logger.debug("decryption of data successful");
     // Convert decrypted data to a UTF-8 string
     return decrypted.toString(UTF_8_ENCODING);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,5 +1,5 @@
 # Oracle Key Management
-Keeper Secrets Manager integrates with **Oracle Key Management Service (OCI KMS)** to provide protection for Keeper Secrets Manager configuration files. With this integration, you can secure connection details on your machine while leveraging Keeper's **zero-knowledge encryption** for all your secret credentials.
+Keeper Secrets Manager integrates with **Oracle Key Vault Management Service (OCI KMS)** to provide protection for Keeper Secrets Manager configuration files. With this integration, you can secure connection details on your machine while leveraging Keeper's **zero-knowledge encryption** for all your secret credentials.
 
 ## Features
 * Encrypt and decrypt your Keeper Secrets Manager configuration files using **OCI KMS**.
@@ -8,7 +8,7 @@ Keeper Secrets Manager integrates with **Oracle Key Management Service (OCI KMS)
 
 ## Prerequisites
 * Supports the JavaScript Secrets Manager SDK.
-* Requires the oci-keymanagement package from OCI SDK.
+* Requires the **oci-keymanagement** package from OCI SDK.
 * OCI KMS Key needs `ENCRYPT` and `DECRYPT` permissions.
 
 ## Setup
@@ -21,44 +21,38 @@ The Secrets Manager oracle KSM module can be installed using npm
 
 2. Configure oracle Connection
 
-By default, the oci-keymanagement library will use the **default OCI configuration file** (`~/.oci/config`).
+By default, the **oci-keymanagement** library will use the **default OCI configuration file** (`~/.oci/config`).
 
 See the (OCI documentation)[https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdkconfig.htm] for more details.
 
-1. Add oracle KMS Storage to Your Code
+3. Add oracle KMS Storage to Your Code
 
 Now that the oracle connection has been configured, you need to tell the Secrets Manager SDK to utilize the KMS as storage.
 
 To do this, use `OciKeyValueStorage` as your Secrets Manager storage in the SecretsManager constructor.
 
-The storage will require an `Config file location`, `configuration profile`(if there are multiple profile configurations) and the OCI `KMS endpoint` as well as the name of the Secrets Manager configuration file which will be encrypted by Oracle KMS.
+The storage will require an `Oracle config file location`, `Oracle configuration profile`(if there are multiple profile configurations) and the OCI `Oracle KMS endpoint` as well as the name of the `Secrets Manager configuration file` which will be encrypted by Oracle KMS.
 ```
     import { OCISessionConfig, OciKeyValueStorage } from "@keeper-security/secrets-manager-oracle-kv";
 
     const getKeeperRecordsOCI = async () => {
 
-        const configFileLocation = "/home/...../.oci/config";
-        const profile = "DEFAULT";
+        const oracleConfigFileLocation = "/home/...../.oci/config";
+        const oracleProfile = "DEFAULT";
         const kmsCryptoEndpoint = "https://<>-crypto.kms.<location>.oraclecloud.com";
         const kmsManagementEndpoint = "https://<>-management.kms.<location>.oraclecloud.com";
 
-        const ociSessionConfig = await new OCISessionConfig(configFileLocation, profile, kmsCryptoEndpoint,kmsManagementEndpoint);
+        const ociSessionConfig = await new OCISessionConfig(oracleConfigFileLocation, oracleProfile, kmsCryptoEndpoint,kmsManagementEndpoint);
+        const logLevel = LoggerLogLevelOptions.info;
+        let config_path = "<Keeper config File Path>";
 
-        let config_path = "<configFilePath>";
-
-        // oneTimeToken is used only once to initialize the storage
-        // after the first run, subsequent calls will use ksm-config.txt
-        const oneTimeToken = "<token>";
+        const oneTimeToken = "<one time token>";
 
         const keyId = 'ocid1.key.oc1.iad.<>.<>';
         const keyVersionId = "ocid1.keyversion.oc1.iad.<>.<>";
 
-        const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path2, ociSessionConfig).init();
-        // await storage.changeKey(keyId);
-        await initializeStorage(storage, ott2);
-
-        // Using token only to generate a config (for later usage)
-        // requires at least one access operation to bind the token
+        const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path, ociSessionConfig,logLevel).init();
+        await initializeStorage(storage, oneTimeToken);
 
         const { records } = await getSecrets({ storage: storage });
         console.log(records);
@@ -72,7 +66,7 @@ The storage will require an `Config file location`, `configuration profile`(if t
 ```
 ## Change Key
 
-To change the KMS key used for encryption, you can call the `changeKey` method on the `OciKeyValueStorage` instance.
+To change the Oracle KMS key used for encryption, you can call the `changeKey` method on the `OciKeyValueStorage` instance.
 ```
     const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path2, ociSessionConfig).init();
     await storage.changeKey(keyId2, keyVersionId2);
@@ -83,13 +77,23 @@ To change the KMS key used for encryption, you can call the `changeKey` method o
 To decrypt the config file and save it again in plaintext, you can call the `decryptConfig` method on the `OciKeyValueStorage` instance.
 Note: this will compromise the security of the config file.
 ```
-    const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path2, ociSessionConfig).init();
-    await storage.decryptConfig();
+    const storage = await new OciKeyValueStorage(keyId, keyVersionId, config_path, ociSessionConfig).init();
+    await storage.decryptConfig(true); // Saves to file
+    const decryptedConfig = await storage.decryptConfig(true); // returns the decrypted config
 ```
 
 
-Once set up, the Secrets Manager OCI KMS integration supports all Secrets Manager JavaScript SDK functionality.
+## Logging
+We support logging for the Oracle Key Vault integration. Supported log levels are as follows
+* trace
+* debug
+* info
+* warn
+* error
+* fatal
+  
+All these levels should be accessed from the LoggerLogLevelOptions enum. If no log level is set, the default log level is info. We can set the logging level to debug to get more information about the integration.
 
-Your code will need access to the OCI KMS APIs to manage encryption and decryption of the configuration file at runtime.
+You're ready to use the KSM integration Using the Oracle KMS Integration 👍
 
-Let me know if you need further refinements! 🚀
+Once setup, the Secrets Manager Oracle KMS integration supports all Secrets Manager JavaScript SDK functionality.  Your code will need to be able to access the Oracle KMS APIs in order to manage the decryption of the configuration file when run. 
