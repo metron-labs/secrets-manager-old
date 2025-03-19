@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { dirname } from "path";
+import { dirname, resolve } from "path";
 import { createHash, randomUUID } from "crypto";
 
 import {
@@ -359,28 +359,40 @@ export class OciKeyValueStorage implements KeyValueStorage {
 
 	private async createConfigFileIfMissing(): Promise<void> {
 		try {
-			await fs.access(this.configFileLocation);
-			this.logger.info(`Config file already exists at: ${this.configFileLocation.toString()}`);
+		  // Ensure the config file path is absolute
+		  const configPath = resolve(this.configFileLocation);
+	
+		  // Check if the config file exists
+		  await fs.access(configPath);
+		  this.logger.info(`Config file already exists at: ${configPath}`);
 		} catch {
-			this.logger.info(`Config file already exists at: ${this.configFileLocation.toString()}`);
-			const dir = dirname(this.configFileLocation);
+		  // If file does not exist, proceed to create it
+	
+		  try {
+			const dir = dirname(resolve(this.configFileLocation)); // Ensure absolute directory path
+	
 			try {
-				await fs.access(dir);
+			  await fs.access(dir); // Check if directory exists
 			} catch {
-				await fs.mkdir(dir, { recursive: true });
+			  await fs.mkdir(dir, { recursive: true }); // Create directory if missing
 			}
-			// Encrypt an empty configuration and write to the file
-			const blob = await encryptBuffer({
-				keyId: this.keyId,
-				message: "{}",
-				cryptoClient: this.cryptoClient,
-				keyVersionId: this.keyVersion,
-				isAsymmetric: this.isAsymmetric
-			}, this.logger);
-			await fs.writeFile(this.configFileLocation, blob);
-			this.logger.info(`Config file created at: ${this.configFileLocation.toString()}`);
+		  } catch {
+			await fs.mkdir(process.cwd(), { recursive: true }); // Use the working directory as fallback
+		  }
+	
+		  // Encrypt an empty configuration and write to the file
+		  const blob = await encryptBuffer({
+			keyId: this.keyId,
+			message: "{}",
+			cryptoClient: this.cryptoClient,
+			keyVersionId: this.keyVersion,
+			isAsymmetric: this.isAsymmetric
+		}, this.logger);
+		  const configPath = resolve(this.configFileLocation);
+		  await fs.writeFile(configPath, blob);
+		  this.logger.info(`Config file created at: ${configPath}`);
 		}
-	}
+	  }
 
 	private async readStorage(): Promise<Record<string, string>> {
 		if (!this.config) {
