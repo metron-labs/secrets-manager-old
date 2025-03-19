@@ -49,7 +49,7 @@ export async function encryptBuffer(
     const response : EncryptResponse = await options.cryptoClient.send(
       encryptCommandPayload
     );
-    const CiphertextBlob = Buffer.from(response.CiphertextBlob ?? '');
+    const CiphertextBlob = response.CiphertextBlob ? Buffer.from(response.CiphertextBlob) : Buffer.alloc(0);
     // Build the blob
     const parts = [CiphertextBlob, nonce, tag, ciphertext];
 

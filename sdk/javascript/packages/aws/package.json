@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@keeper-security/secrets-manager-core": "^17.0.0",
-    "aws-sdk": "^2.1692.0",
+    "@aws-sdk/client-kms": "^3.758.0",
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0"
   }
