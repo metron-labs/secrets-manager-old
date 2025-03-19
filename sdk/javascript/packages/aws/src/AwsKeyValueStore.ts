@@ -35,9 +35,9 @@ export class AWSKeyValueStorage implements KeyValueStorage {
   config: Record<string, string> = {};
   lastSavedConfigHash!: string;
   logger: pino.Logger;
-  encryptionAlgorithm: EncryptionAlgorithmSpec;
+  encryptionAlgorithm: EncryptionAlgorithmSpec = EncryptionAlgorithmSpec.SYMMETRIC_DEFAULT;
   awsCredentials!: AWSSessionConfig;
-  keyType: string;
+  keyType!: string;
   configFileLocation!: string;
 
   getString(key: string): Promise<string | undefined> {
@@ -114,7 +114,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
   async init() {
     await this.getKeyDetails();
     await this.loadConfig();
-    this.logger.info(`Loaded config file from ${this.configFileLocation}`);
+    this.logger.info(`Loaded config file from ${this.configFileLocation.toString()}`);
     return this; // Return the instance to allow chaining
   }
 
@@ -144,7 +144,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
       this.keyType = keySpecDetails;
       //eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      this.logger.error("Failed to get key details:", err.message);
+      this.logger.error(`Failed to get key details: ${err.message.toString()}`);
     }
   }
 
@@ -156,20 +156,20 @@ export class AWSKeyValueStorage implements KeyValueStorage {
       let contents: Buffer = Buffer.alloc(0);
       try {
         contents = await fs.readFile(this.configFileLocation);
-        this.logger.info(`Loaded config file ${this.configFileLocation}`);
+        this.logger.info(`Loaded config file ${this.configFileLocation.toString()}`);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         this.logger.error(
-          `Failed to load config file ${this.configFileLocation}: ${err.message}`
+          `Failed to load config file ${this.configFileLocation.toString()}: ${err.message.toString()}`
         );
         throw new Error(
-          `Failed to load config file ${this.configFileLocation}`
+          `Failed to load config file ${this.configFileLocation.toString()}`
         );
       }
       let config: Record<string, string> | null = null;
 
       if (contents.length === 0) {
-        this.logger.warn(`Empty config file ${this.configFileLocation}`);
+        this.logger.warn(`Empty config file ${this.configFileLocation.toString()}`);
         contents = Buffer.from("{}");
       }
 
@@ -222,24 +222,24 @@ export class AWSKeyValueStorage implements KeyValueStorage {
         } catch (err: any) {
           decryptionError = true;
           this.logger.error(
-            `Failed to parse decrypted config file: ${err.message}`
+            `Failed to parse decrypted config file: ${err.message.toString()}`
           );
           throw new Error(
-            `Failed to parse decrypted config file ${this.configFileLocation}`
+            `Failed to parse decrypted config file ${this.configFileLocation.toString()}`
           );
         }
       }
       if (jsonError && decryptionError) {
         this.logger.info(
-          `Config file is not a valid JSON file: ${jsonError.message}`
+          `Config file is not a valid JSON file: ${jsonError.message.toString()}`
         );
         throw new Error(
-          `${this.configFileLocation} may contain JSON format problems`
+          `${this.configFileLocation.toString()} may contain JSON format problems`
         );
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      this.logger.error(`Error loading config: ${err.message}`);
+      this.logger.error(`Error loading config: ${err.message.toString()}`);
       throw err;
     }
   }
@@ -309,7 +309,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
     }
   }
 
-  public async decryptConfig(autosave: boolean = true): Promise<string> {
+  public async decryptConfig(autosave: boolean ): Promise<string> {
     let ciphertext: Buffer;
     let plaintext: string;
 
@@ -317,15 +317,15 @@ export class AWSKeyValueStorage implements KeyValueStorage {
       // Read the config file
       ciphertext = await fs.readFile(this.configFileLocation);
       if (ciphertext.length === 0) {
-        this.logger.warn(`Empty config file ${this.configFileLocation}`);
+        this.logger.warn(`Empty config file ${this.configFileLocation.toString()}`);
         return "";
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       this.logger.error(
-        `Failed to load config file ${this.configFileLocation}: ${err.message}`
+        `Failed to load config file ${this.configFileLocation.toString()}: ${err.message.toString()}`
       );
-      throw new Error(`Failed to load config file ${this.configFileLocation}`);
+      throw new Error(`Failed to load config file ${this.configFileLocation.toString()}`);
     }
 
     try {
@@ -339,7 +339,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
       }, this.logger);
       if (plaintext.length === 0) {
         this.logger.error(
-          `Failed to decrypt config file ${this.configFileLocation}`
+          `Failed to decrypt config file ${this.configFileLocation.toString()}`
         );
       } else if (autosave) {
         // Optionally autosave the decrypted content
@@ -348,10 +348,10 @@ export class AWSKeyValueStorage implements KeyValueStorage {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       this.logger.error(
-        `Failed to write decrypted config file ${this.configFileLocation}: ${err.message}`
+        `Failed to write decrypted config file ${this.configFileLocation.toString()}: ${err.message.toString()}`
       );
       throw new Error(
-        `Failed to write decrypted config file ${this.configFileLocation}`
+        `Failed to write decrypted config file ${this.configFileLocation.toString()}`
       );
     }
 
@@ -377,10 +377,10 @@ export class AWSKeyValueStorage implements KeyValueStorage {
       this.keyId = oldKeyId;
       this.cryptoClient = oldCryptoClient;
       this.logger.error(
-        `Failed to change the key to '${newKeyId}' for config '${this.configFileLocation}': ${error.message}`
+        `Failed to change the key to '${newKeyId}' for config '${this.configFileLocation.toString()}': ${error.message.toString()}`
       );
       throw new Error(
-        `Failed to change the key for ${this.configFileLocation}`
+        `Failed to change the key for ${this.configFileLocation.toString()}`
       );
     }
     return true;
@@ -405,13 +405,13 @@ export class AWSKeyValueStorage implements KeyValueStorage {
           cryptoClient: this.cryptoClient,
         }, this.logger);
         await fs.writeFile(this.configFileLocation, blob);
-        this.logger.info("Config file created at:", this.configFileLocation);
+        this.logger.info("Config file created at:", this.configFileLocation.toString());
       } else {
-        this.logger.info("Config file already exists at:", this.configFileLocation);
+        this.logger.info("Config file already exists at:", this.configFileLocation.toString());
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      this.logger.error("Error creating config file:", err.message);
+      this.logger.error("Error creating config file:", err.message.toString());
     }
   }
 
@@ -441,10 +441,10 @@ export class AWSKeyValueStorage implements KeyValueStorage {
     const config = await this.readStorage();
 
     if (config[key]) {
-      this.logger.debug(`Deleting key ${key} from ${this.configFileLocation}`);
+      this.logger.debug(`Deleting key ${key} from ${this.configFileLocation.toString()}`);
       delete config[key];
     } else {
-      this.logger.debug(`Key ${key} not found in ${this.configFileLocation}`);
+      this.logger.debug(`Key ${key} not found in ${this.configFileLocation.toString()}`);
     }
     await this.saveStorage(config);
   }
