@@ -30,11 +30,11 @@ export class GCPKeyValueStorage implements KeyValueStorage {
   private lastSavedConfigHash!: string;
   private logger: Logger;
   private gcpKeyConfig!: GCPKeyConfig;
-  private keyType: string;
+  private keyType!: string;
   private configFileLocation!: string;
   private gcpSessionConfig: GCPKSMClient;
   private isAsymmetric: boolean = false;
-  private encryptionAlgorithm: string;
+  private encryptionAlgorithm!: string;
 
   public getString(key: string): Promise<string | undefined> {
     return this.get(key);
@@ -68,7 +68,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
     }
     await this.saveStorage(config);
   }
-  
+
   public getObject?<T>(key: string): Promise<T | undefined> {
     return this.getString(key).then((value) =>
       value ? (JSON.parse(value) as T) : undefined
@@ -94,14 +94,14 @@ export class GCPKeyValueStorage implements KeyValueStorage {
     keyVaultConfigFileLocation: string | null,
     gcpKeyConfig: GCPKeyConfig,
     gcpSessionConfig: GCPKSMClient,
-    logLevel ?: LoggerLogLevelOptions
+    logLevel?: LoggerLogLevelOptions
   ) {
     this.configFileLocation =
       keyVaultConfigFileLocation ??
       process.env.KSM_CONFIG_FILE ??
       this.defaultConfigFileLocation;
-    
-    this.logger = logLevel==null ? getLogger(DEFAULT_LOG_LEVEL) : getLogger(logLevel);
+
+    this.logger = logLevel == null ? getLogger(DEFAULT_LOG_LEVEL) : getLogger(logLevel);
 
     this.gcpSessionConfig = gcpSessionConfig;
     this.gcpKeyConfig = gcpKeyConfig;
@@ -156,19 +156,19 @@ export class GCPKeyValueStorage implements KeyValueStorage {
       let contents: Buffer;
       try {
         contents = await fs.readFile(this.configFileLocation);
-        this.logger.info(`Loaded config file ${this.configFileLocation}`);
+        this.logger.info(`Loaded config file ${this.configFileLocation.toString()}`);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         this.logger.error(
-          `Failed to load config file ${this.configFileLocation}: ${err.message}`
+          `Failed to load config file ${this.configFileLocation.toString()}: ${err.message.toString()}`
         );
         throw new Error(
-          `Failed to load config file ${this.configFileLocation}`
+          `Failed to load config file ${this.configFileLocation.toString()}`
         );
       }
 
       if (contents.length === 0) {
-        this.logger.warn(`Empty config file ${this.configFileLocation}`);
+        this.logger.warn(`Empty config file ${this.configFileLocation.toString()}`);
         contents = Buffer.from("{}");
       }
 
@@ -196,7 +196,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
-        this.logger.debug("given file is encrypted file. trying to decrypt the configuration into a json from it")
+        this.logger.debug("given file is encrypted file. trying to decrypt the configuration into a json from it");
         jsonError = err;
       }
 
@@ -208,8 +208,8 @@ export class GCPKeyValueStorage implements KeyValueStorage {
           keyType: this.keyType,
           encryptionAlgorithm: this.encryptionAlgorithm,
           keyProperties: this.gcpKeyConfig
-        },this.logger);
-        this.logger.debug("decrypted configuration, trying to parse decrypted configuration into a json")
+        }, this.logger);
+        this.logger.debug("decrypted configuration, trying to parse decrypted configuration into a json");
         try {
           config = JSON.parse(configJson);
           this.config = config ?? {};
@@ -226,16 +226,16 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         } catch (err: any) {
           decryptionError = true;
           this.logger.error(
-            `Failed to parse decrypted config file: ${err.message}`
+            `Failed to parse decrypted config file: ${err.message.toString()}`
           );
           throw new Error(
-            `Failed to parse decrypted config file ${this.configFileLocation}`
+            `Failed to parse decrypted config file ${this.configFileLocation.toString()}`
           );
         }
       }
       if (jsonError && decryptionError) {
         this.logger.info(
-          `Config file is not a valid JSON file: ${jsonError.message}`
+          `Config file is not a valid JSON file: ${jsonError.message.toString()}`
         );
         throw new Error(
           `${this.configFileLocation} may contain JSON format problems`
@@ -243,7 +243,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      this.logger.error(`Error loading config: ${err.message}`);
+      this.logger.error(`Error loading config: ${err.message.toString()}`);
       throw err;
     }
   }
@@ -296,7 +296,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         Object.keys(this.config),
         DEFAULT_JSON_INDENT
       );
-      this.logger.debug("encrypting the config before writing to file.")
+      this.logger.debug("encrypting the config before writing to file.");
       const blob = await encryptBuffer({
         isAsymmetric: this.isAsymmetric,
         message: stringifiedValue,
@@ -304,9 +304,9 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         keyType: this.keyType,
         encryptionAlgorithm: this.encryptionAlgorithm,
         keyProperties: this.gcpKeyConfig
-      },this.logger);
+      }, this.logger);
       await fs.writeFile(this.configFileLocation, blob);
-      this.logger.debug("writing to the file completed successfully.")
+      this.logger.debug("writing to the file completed successfully.");
       // Update the last saved config hash
       this.lastSavedConfigHash = configHash;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -315,7 +315,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
     }
   }
 
-  public async decryptConfig(autosave: boolean = true): Promise<string> {
+  public async decryptConfig(autosave: boolean): Promise<string> {
     let ciphertext: Buffer;
     let plaintext: string = "";
 
@@ -323,15 +323,15 @@ export class GCPKeyValueStorage implements KeyValueStorage {
       // Read the config file
       ciphertext = await fs.readFile(this.configFileLocation);
       if (ciphertext.length === 0) {
-        this.logger.warn(`Empty config file ${this.configFileLocation}`);
+        this.logger.warn(`Empty config file ${this.configFileLocation.toString()}`);
         return "";
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       this.logger.error(
-        `Failed to load config file ${this.configFileLocation}: ${err.message}`
+        `Failed to load config file ${this.configFileLocation.toString()}: ${err.message.toString()}`
       );
-      throw new GCPKeyValueStorageError(`Failed to load config file ${this.configFileLocation}`);
+      throw new GCPKeyValueStorageError(`Failed to load config file ${this.configFileLocation.toString()}`);
     }
 
     try {
@@ -343,7 +343,7 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         encryptionAlgorithm: this.encryptionAlgorithm,
         keyProperties: this.gcpKeyConfig,
         ciphertext,
-      },this.logger);
+      }, this.logger);
       if (plaintext.length === 0) {
         this.logger.error(
           `Failed to decrypt config file ${this.configFileLocation}`
@@ -351,19 +351,18 @@ export class GCPKeyValueStorage implements KeyValueStorage {
       } else if (autosave) {
         // Optionally autosave the decrypted content
         this.logger.debug("Autosave is true here. hence saving to file the decrypted configuration.");
-        this.logger.warn("Saving the credentials file as plaintext file, please consider encrypting.")
+        this.logger.warn("Saving the credentials file as plaintext file, please consider encrypting.");
         await fs.writeFile(this.configFileLocation, plaintext);
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       this.logger.error(
-        `Failed to write decrypted config file ${this.configFileLocation}: ${err.message}`
+        `Failed to write decrypted config file ${this.configFileLocation.toString()}: ${err.message.toString()}`
       );
       throw new Error(
-        `Failed to write decrypted config file ${this.configFileLocation}`
+        `Failed to write decrypted config file ${this.configFileLocation.toString()}`
       );
     }
-
     return plaintext;
   }
 
@@ -390,10 +389,10 @@ export class GCPKeyValueStorage implements KeyValueStorage {
       this.gcpKeyConfig = oldKeyConfiguration;
       this.cryptoClient = oldCryptoClient;
       this.logger.error(
-        `Failed to change the key to '${newGcpKeyConfig.toString()}' for config '${this.configFileLocation}': ${error.message}`
+        `Failed to change the key to '${newGcpKeyConfig.toString()}' for config '${this.configFileLocation.toString()}': ${error.message.toString()}`
       );
       throw new Error(
-        `Failed to change the key for ${this.configFileLocation}`
+        `Failed to change the key for ${this.configFileLocation.toString()}`
       );
     }
     return true;
@@ -402,9 +401,9 @@ export class GCPKeyValueStorage implements KeyValueStorage {
   private async createConfigFileIfMissing(): Promise<void> {
     try {
       await fs.access(this.configFileLocation);
-      this.logger.info("Config file already exists at:", this.configFileLocation);
+      this.logger.info(`Config file already exists at: ${this.configFileLocation}`);
     } catch {
-      this.logger.info("Config file does not exist at:", this.configFileLocation);
+      this.logger.info(`Config file does not exist at: ${this.configFileLocation}`);
       const dir = dirname(this.configFileLocation);
       try {
         await fs.access(dir);
@@ -419,9 +418,9 @@ export class GCPKeyValueStorage implements KeyValueStorage {
         cryptoClient: this.cryptoClient,
         encryptionAlgorithm: this.encryptionAlgorithm,
         keyProperties: this.gcpKeyConfig
-      },this.logger);
+      }, this.logger);
       await fs.writeFile(this.configFileLocation, blob);
-      this.logger.info("Config file created at:", this.configFileLocation);
+      this.logger.info(`Config file created at ${this.configFileLocation}`);
     }
   }
 

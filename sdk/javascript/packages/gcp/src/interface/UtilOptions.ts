@@ -1,24 +1,24 @@
 import { KeyManagementServiceClient } from '@google-cloud/kms';
 import { GCPKeyConfig } from 'src/GcpKeyConfig';
 
-export type KMSClient = InstanceType <typeof KeyManagementServiceClient> ;
+export type KMSClient = InstanceType<typeof KeyManagementServiceClient>;
 
-export interface Options{
+export interface Options {
   isAsymmetric: boolean;
   cryptoClient: KMSClient;
-  keyProperties : GCPKeyConfig;
-  encryptionAlgorithm : string;
+  keyProperties: GCPKeyConfig;
+  encryptionAlgorithm: string;
 };
 
-export interface BufferOptions extends Options{
+export interface BufferOptions extends Options {
   keyType: string;
 };
 
-export interface EncryptBufferOptions extends BufferOptions{
+export interface EncryptBufferOptions extends BufferOptions {
   message: string;
 };
 
-export interface DecryptBufferOptions extends BufferOptions{
+export interface DecryptBufferOptions extends BufferOptions {
   ciphertext: Buffer;
 };
 
