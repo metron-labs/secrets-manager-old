@@ -57,7 +57,7 @@ export class GCPKeyConfig {
      * @param {string} [location] The location (region or multi-region)
      * @param {string} [keyVersion] The version of the key. If not provided, the latest version will be used.
      */
-    constructor(resourcename?: string, keyName?: string, keyRing?: string, project?: string, location?: string, keyVersion?: string | null,logger ?: pino.Logger) {
+    constructor(resourcename?: string, keyName?: string, keyRing?: string, project?: string, location?: string, keyVersion?: string | null, logger?: pino.Logger) {
         this.logger = logger == null ? getLogger(DEFAULT_LOG_LEVEL) : logger;
         if (!resourcename) {
             this.keyName = keyName ?? '';

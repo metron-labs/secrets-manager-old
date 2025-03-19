@@ -1,5 +1,5 @@
 import { KeyPurpose, LoggerLogLevelOptions } from "./enum";
-import {constants} from "crypto";
+import { constants } from "crypto";
 
 export const supportedKeyPurpose: string[] = [
   KeyPurpose.RAW_ENCRYPT_DECRYPT,

@@ -25,7 +25,7 @@ export class GCPKSMClient {
    * If you want to use a different set of credentials, you can pass them in the
    * constructor.
    */
-  constructor(logger ?: pino.Logger) {
+  constructor(logger?: pino.Logger) {
     this.KMSClient = new KeyManagementServiceClient();
     this.logger = logger == null ? getLogger(DEFAULT_LOG_LEVEL) : logger;
   }
