@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { dirname } from "path";
+import { dirname, resolve } from "path";
 import { createHash } from "crypto";
 
 import {
@@ -95,7 +95,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
       process.env.KSM_CONFIG_FILE ??
       this.defaultConfigFileLocation;
     this.keyId = keyId ?? process.env.KSM_AWS_KEY_ID;
-    this.logger = getLogger(logLevel??DEFAULT_LOG_LEVEL);
+    this.logger = getLogger(logLevel ?? DEFAULT_LOG_LEVEL);
 
     if (awsSessionConfig) {
       const hasAWSSessionConfig =
@@ -309,7 +309,7 @@ export class AWSKeyValueStorage implements KeyValueStorage {
     }
   }
 
-  public async decryptConfig(autosave: boolean ): Promise<string> {
+  public async decryptConfig(autosave: boolean): Promise<string> {
     let ciphertext: Buffer;
     let plaintext: string;
 
@@ -358,14 +358,14 @@ export class AWSKeyValueStorage implements KeyValueStorage {
     return plaintext;
   }
 
-  public async changeKey(newKeyId: string,newAwsConfig ?: AWSSessionConfig): Promise<boolean> {
+  public async changeKey(newKeyId: string, newAwsConfig?: AWSSessionConfig): Promise<boolean> {
     const oldKeyId = this.keyId;
     const oldCryptoClient = this.cryptoClient;
-    const oldAwsCredentials = this.awsCredentials; 
+    const oldAwsCredentials = this.awsCredentials;
 
     try {
       // Update the key and reinitialize the CryptographyClient
-      if(newAwsConfig){
+      if (newAwsConfig) {
         this.logger.info(`Changing key to ${newKeyId} for config '${this.configFileLocation.toString()}'`);
         this.awsCredentials = newAwsConfig;
       }
@@ -392,22 +392,30 @@ export class AWSKeyValueStorage implements KeyValueStorage {
     return true;
   }
 
+
   private async createConfigFileIfMissing(): Promise<void> {
     try {
+      // Ensure the config file path is absolute
+      const configPath = resolve(this.configFileLocation);
+
       // Check if the config file exists
-      await fs.access(this.configFileLocation);
-      this.logger.info(`Config file already exists at: ${this.configFileLocation.toString()}`);
+      await fs.access(configPath);
+      this.logger.info(`Config file already exists at: ${configPath}`);
     } catch {
       // If file does not exist, proceed to create it
-  
-      // Ensure the directory structure exists
-      const dir = dirname(this.configFileLocation);
+
       try {
-        await fs.access(dir); // Check if directory exists
+        const dir = dirname(resolve(this.configFileLocation)); // Ensure absolute directory path
+
+        try {
+          await fs.access(dir); // Check if directory exists
+        } catch {
+          await fs.mkdir(dir, { recursive: true }); // Create directory if missing
+        }
       } catch {
-        await fs.mkdir(dir, { recursive: true }); // Create directory if missing
+        await fs.mkdir(process.cwd(), { recursive: true }); // Use the working directory as fallback
       }
-  
+
       // Encrypt an empty configuration and write to the file
       const blob = await encryptBuffer({
         keyId: this.keyId,
@@ -416,11 +424,12 @@ export class AWSKeyValueStorage implements KeyValueStorage {
         keyType: this.keyType,
         cryptoClient: this.cryptoClient,
       }, this.logger);
-  
-      await fs.writeFile(this.configFileLocation, blob);
-      this.logger.info(`Config file created at: ${this.configFileLocation.toString()}`);
+      const configPath = resolve(this.configFileLocation);
+      await fs.writeFile(configPath, blob);
+      this.logger.info(`Config file created at: ${configPath}`);
     }
   }
+
 
 
   public async readStorage(): Promise<Record<string, string>> {
