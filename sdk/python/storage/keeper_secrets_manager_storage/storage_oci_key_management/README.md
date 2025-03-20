@@ -9,7 +9,7 @@ Keeper Secrets Manager integrates with Oracle KMS in order to provide protection
 ## Prerequisites
 * Supports the Python Secrets Manager SDK
 * Requires `oci` package
-* user credentials to be used will need to have key vault permissions
+* User credentials to be used will need to have key vault permissions
 
 ## Setup
 
