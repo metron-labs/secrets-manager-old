@@ -70,7 +70,8 @@ If you want to change the key from previous configuration, you can use the `chan
     key_id_2 = "<second key id>"
     key_version_id_2 = "<second key version>"
 
-    storage.change_key(key_id, key_version_id)
+    isChanged = storage.change_key(key_id, key_version_id)
+    print("Key is changed " + isChanged)
 ```
 
 ## Decrypt config
