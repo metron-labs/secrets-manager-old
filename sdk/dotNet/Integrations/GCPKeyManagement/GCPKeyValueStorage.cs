@@ -30,7 +30,7 @@ namespace GCPKeyManagement
 
         public GCPKeyValueStorage(GCPKeyConfig keyConfig, GCPKMSClient? credentials = null, string? configFileLocation = null, ILogger<GCPKeyValueStorage>? logger = null)
         {
-            this.logger = logger ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<GCPKeyValueStorage>();
+            this.logger = GetLogger(logger);
             this.keyConfig = keyConfig;
             if (configFileLocation == null)
             {
@@ -46,6 +46,14 @@ namespace GCPKeyManagement
             lastSavedConfigHash = "";
             GetKeyDetailsAsync().Wait();
             LoadConfigAsync().Wait();
+        }
+
+        private ILogger GetLogger(ILogger? logger){
+            return logger ?? LoggerFactory.Create(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Information);
+                builder.AddConsole();
+            }).CreateLogger<GCPKeyValueStorage>();
         }
 
         public string? GetString(string key)
