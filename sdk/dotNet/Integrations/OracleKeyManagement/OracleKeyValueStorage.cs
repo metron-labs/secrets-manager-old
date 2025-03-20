@@ -32,7 +32,7 @@ namespace OracleKeyManagement
 
         public OracleKeyValueStorage(string KeyId, string KeyVersionId, string? configFileLocation = null, OciSessionConfig? ociSessionConfig = null, ILogger? logger = null)
         {
-            this.logger = logger ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<OracleKeyValueStorage>();
+            this.logger = GetLogger(logger);
             this.KeyId = KeyId;
             this.KeyVersionId = KeyVersionId;
             if (configFileLocation == null)
@@ -50,6 +50,14 @@ namespace OracleKeyManagement
             lastSavedConfigHash = "";
             GetKeyDetailsAsync().Wait();
             LoadConfigAsync().Wait();
+        }
+
+        private ILogger GetLogger(ILogger? logger){
+            return logger ?? LoggerFactory.Create(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Information);
+                builder.AddConsole();
+            }).CreateLogger<OracleKeyValueStorage>();
         }
 
         public string? GetString(string key)
@@ -102,6 +110,7 @@ namespace OracleKeyManagement
         {
             try
             {
+                logger.LogDebug("Checking if config file exists at: {Path}", configFileLocation);
                 if (File.Exists(configFileLocation))
                 {
                     logger.LogInformation("Config file already exists at: {Path}", configFileLocation);
@@ -112,6 +121,7 @@ namespace OracleKeyManagement
                 string? directory = Path.GetDirectoryName(configFileLocation);
                 if (directory != null && !Directory.Exists(directory))
                 {
+                    logger.LogDebug("Creating directory: {Path}", directory);
                     Directory.CreateDirectory(directory);
                 }
 
@@ -126,7 +136,7 @@ namespace OracleKeyManagement
                 // Encrypt an empty configuration and write to the file
                 byte[] blob = await IntegrationUtils.EncryptBufferAsync(options, logger);
                 await File.WriteAllBytesAsync(configFileLocation, blob);
-
+                
                 logger.LogInformation("Config file created at: {Path}", configFileLocation);
             }
             catch (Exception ex)
@@ -137,8 +147,9 @@ namespace OracleKeyManagement
 
         private async Task LoadConfigAsync()
         {
+            logger.LogInformation("Loading config file {Path}", configFileLocation);
             await CreateConfigFileIfMissingAsync();
-
+            logger.LogDebug("Created config file in path if missing else validating.. {Path}", configFileLocation);
             try
             {
                 // Read the config file
@@ -183,7 +194,7 @@ namespace OracleKeyManagement
                 {
                     string configData = Encoding.UTF8.GetString(contents);
                     parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-
+                    logger.LogDebug("Valid JSON parsed successfully.");
                     if (parsedConfig != null)
                     {
                         config = parsedConfig;
@@ -202,6 +213,7 @@ namespace OracleKeyManagement
                 {
                     try
                     {
+                        logger.LogDebug("Config file is not a valid JSON file: {Message}", jsonError.Message);
                         DecryptOptions options = new DecryptOptions
                         {
                             KeyId = KeyId,
@@ -212,6 +224,7 @@ namespace OracleKeyManagement
                         };
                         string decryptedJson = await IntegrationUtils.DecryptBufferAsync(options, logger);
                         parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedJson);
+                        logger.LogDebug("Decrypted config file successfully.");
 
                         if (parsedConfig != null)
                         {
@@ -245,21 +258,24 @@ namespace OracleKeyManagement
         {
             try
             {
-
+                logger.LogDebug("Getting key details");
                 var requestId = Guid.NewGuid().ToString();
+                logger.LogDebug("Get key details Request ID: {RequestId}", requestId);
                 var keyDetailsRequest = new Oci.KeymanagementService.Requests.GetKeyRequest
                 {
                   KeyId = KeyId  
                 };
 
                 GetKeyResponse keyDetailsResponse = await managementClient.GetKey(keyDetailsRequest);
+                logger.LogDebug("Get key details Response ID: {RequestId}", requestId);
                 var Algorithm = keyDetailsResponse.Key.KeyShape.Algorithm;
-
+                logger.LogDebug("Key Algorithm: {Algorithm}", Algorithm);
                 if (Algorithm == Oci.KeymanagementService.Models.KeyShape.AlgorithmEnum.Rsa){
                     IsAsymmetric = true;
                 }else if(Algorithm == Oci.KeymanagementService.Models.KeyShape.AlgorithmEnum.Aes){
                     IsAsymmetric = false;
                 }else {
+                    logger.LogError("Unsupported Key Spec for Oracle KMS Storage");
                     throw new Exception("Unsupported Key Spec for Oracle KMS Storage");
                 }
             }
@@ -274,11 +290,12 @@ namespace OracleKeyManagement
         {
             try
             {
+                logger.LogDebug("Saving config");
                 // Retrieve current config
                 Dictionary<string, string> currentConfig = config ?? new();
                 string configJson = SerializeConfig(currentConfig);
                 string configHash = ComputeMD5Hash(configJson);
-
+                logger.LogDebug("serialized and computed config hash");
                 // Compare updatedConfig hash with current config hash
                 if (updatedConfig != null && updatedConfig.Count > 0)
                 {
@@ -287,8 +304,10 @@ namespace OracleKeyManagement
 
                     if (updatedConfigHash != configHash)
                     {
+                        logger.LogDebug("Updated config hash is different from current config hash");
                         configHash = updatedConfigHash;
                         config = new Dictionary<string, string>(updatedConfig);
+                        logger.LogDebug("changed config to provided config");
                     }
                 }
 
@@ -314,7 +333,7 @@ namespace OracleKeyManagement
                 // Encrypt the config JSON and write to the file
                 byte[] blob = await IntegrationUtils.EncryptBufferAsync(options, logger);
                 await File.WriteAllBytesAsync(configFileLocation, blob);
-
+                logger.LogDebug("Saved config to {File}", configFileLocation);
                 // Update the last saved config hash
                 lastSavedConfigHash = configHash;
             }
@@ -342,7 +361,7 @@ namespace OracleKeyManagement
                 if (ciphertext.Length == 0)
                 {
                     logger.LogWarning("Empty config file {File}", configFileLocation);
-                    return "";
+                    return plaintext;
                 }
             }
             catch (Exception ex)
@@ -384,6 +403,7 @@ namespace OracleKeyManagement
 
         public async Task<bool> ChangeKeyAsync(string newKeyId, string? newKeyVersionId, OciSessionConfig? newOciSessionConfig)
         {
+            logger.LogInformation("Changing key config");
             var oldKeyId = KeyId;
             var oldKeyVersionId = KeyVersionId;
             var oldKmsClient = ksmClient;
@@ -392,6 +412,7 @@ namespace OracleKeyManagement
                 // Check if config needs initialization
                 if (config == null || (config is System.Collections.ICollection collection && collection.Count == 0))
                 {
+                    logger.LogDebug("Initializing config as current config is empty");
                     await LoadConfigAsync();
                 }
 

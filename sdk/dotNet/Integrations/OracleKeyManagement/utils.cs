@@ -19,6 +19,7 @@ public class IntegrationUtils
     {
         try
         {
+            logger.LogInformation("Encrypting data");
             // Step 1: Generate a random 32-byte AES key
             byte[] key = GenerateRandomBytes(AesKeySize);
 
@@ -35,17 +36,22 @@ public class IntegrationUtils
 
                 aes.Encrypt(nonce, plaintextBytes, ciphertext, tag);
             }
-
-            EncryptDataDetails encryptDataDetails = new EncryptDataDetails{
+            logger.LogDebug("AES encryption completed");
+            EncryptDataDetails encryptDataDetails = new EncryptDataDetails
+            {
                 KeyId = options.KeyId,
                 Plaintext = Convert.ToBase64String(key)
             };
 
-            if (!options.keyVersionId.IsNullOrEmpty()){
+            if (!options.keyVersionId.IsNullOrEmpty())
+            {
+                logger.LogDebug("Using key version id: {KeyVersionId}", options.keyVersionId);
                 encryptDataDetails.KeyVersionId = options.keyVersionId;
             }
 
-            if (options.IsAsymmetric){
+            if (options.IsAsymmetric)
+            {
+                logger.LogDebug("Using asymmetric encryption");
                 encryptDataDetails.EncryptionAlgorithm = EncryptDataDetails.EncryptionAlgorithmEnum.RsaOaepSha256;
             }
 
@@ -54,7 +60,9 @@ public class IntegrationUtils
                 EncryptDataDetails = encryptDataDetails
             };
 
+            logger.LogDebug("Sending encrypt request");
             Oci.KeymanagementService.Responses.EncryptResponse encryptResponse = await options.CryptoClient.Encrypt(encryptRequest);
+            logger.LogDebug("Received encrypt response");
 
             var EncryptedKeyString = encryptResponse.EncryptedData.Ciphertext;
             byte[] EncryptedKey = Convert.FromBase64String(EncryptedKeyString);
@@ -70,6 +78,7 @@ public class IntegrationUtils
                     WriteLengthPrefixed(writer, tag);
                     WriteLengthPrefixed(writer, ciphertext);
                 }
+                logger.LogDebug("Completed writing to memory stream");
                 return ms.ToArray();
             }
         }
@@ -84,11 +93,13 @@ public class IntegrationUtils
     {
         try
         {
+            logger.LogInformation("Decrypting data");
             // Step 1: Validate BLOB_HEADER
             byte[] header = new byte[IntegrationConstants.HEADER_SIZE];
             Array.Copy(options.CipherText, header, IntegrationConstants.HEADER_SIZE);
             if (!header.AsEnumerable().SequenceEqual(IntegrationConstants.BLOB_HEADER))
             {
+                logger.LogError("Invalid ciphertext structure: invalid header. Maybe the data is corrupted?");
                 throw new InvalidOperationException("Invalid ciphertext structure: invalid header.");
             }
 
@@ -99,36 +110,50 @@ public class IntegrationUtils
             for (int i = 0; i < 4; i++)
             {
                 if (pos + IntegrationConstants.LENGTH_PREFIX_SIZE > options.CipherText.Length)
+                {
+                    logger.LogError("Invalid ciphertext structure: size buffer length mismatch.");
                     throw new InvalidOperationException("Invalid ciphertext structure: size buffer length mismatch.");
+                }
 
                 ushort partLength = BitConverter.ToUInt16(options.CipherText, pos);
                 pos += IntegrationConstants.LENGTH_PREFIX_SIZE;
 
                 if (pos + partLength > options.CipherText.Length)
+                {
+                    logger.LogError("Invalid ciphertext structure: part length mismatch.");
                     throw new InvalidOperationException("Invalid ciphertext structure: part length mismatch.");
+                }
 
                 parts[i] = options.CipherText[pos..(pos + partLength)];
                 pos += partLength;
             }
 
             if (parts.Length != 4)
+            {
+                logger.LogError("Invalid ciphertext structure: incorrect number of parts.");
                 throw new InvalidOperationException("Invalid ciphertext structure: incorrect number of parts.");
+            }
 
             byte[] encryptedKey = parts[0];
             byte[] nonce = parts[1];
             byte[] tag = parts[2];
             byte[] encryptedText = parts[3];
 
-            DecryptDataDetails decryptDataDetails = new DecryptDataDetails{
+            DecryptDataDetails decryptDataDetails = new DecryptDataDetails
+            {
                 Ciphertext = Convert.ToBase64String(encryptedKey),
                 KeyId = options.KeyId
             };
 
-            if (!options.keyVersionId.IsNullOrEmpty()){
+            if (!options.keyVersionId.IsNullOrEmpty())
+            {
+                logger.LogInformation("Using key version id: {KeyVersionId}", options.keyVersionId);
                 decryptDataDetails.KeyVersionId = options.keyVersionId;
             }
 
-            if(options.IsAsymmetric){
+            if (options.IsAsymmetric)
+            {
+                logger.LogInformation("Using asymmetric encryption for decrypt operation");
                 decryptDataDetails.EncryptionAlgorithm = DecryptDataDetails.EncryptionAlgorithmEnum.RsaOaepSha256;
             }
 
@@ -137,8 +162,10 @@ public class IntegrationUtils
                 DecryptDataDetails = decryptDataDetails
             };
 
+            logger.LogDebug("Decrypting key using Oci KeyManagement Key");
             // Step 3: Decrypt AES key using Oci KeyManagement Key
             Oci.KeymanagementService.Responses.DecryptResponse decryptResponse = await options.CryptoClient.Decrypt(decryptRequest);
+            logger.LogDebug("Decrypted key using Oci KeyManagement Key");
 
             var DecryptedKeyString = decryptResponse.DecryptedData.Plaintext;
             byte[] decryptedKey = Convert.FromBase64String(DecryptedKeyString);
@@ -146,11 +173,12 @@ public class IntegrationUtils
             // Step 4: Decrypt the message using AES-GCM
             try
             {
+                logger.LogDebug("Decrypting data using AES-GCM");
                 using AesGcm aesGcm = new AesGcm(decryptedKey, IntegrationConstants.AES_GCM_TAG_BYTE_SIZE);
                 byte[] decryptedData = new byte[encryptedText.Length];
 
                 aesGcm.Decrypt(nonce, encryptedText, tag, decryptedData);
-
+                logger.LogDebug("Decrypted data using AES-GCM");
                 // Step 5: Convert decrypted data to a UTF-8 string
                 return Encoding.UTF8.GetString(decryptedData);
             }
