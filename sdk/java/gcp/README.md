@@ -16,7 +16,7 @@ Features
 * Key needs `Encrypt` and `Decrypt` permissions.
 
 # Set Up Authentication
-Before using Google Cloud APIs, you must authenticate your Python application. The easiest way to do this is by setting up a service account and downloading a service account key file (JSON). This service account should have the appropriate permissions to interact with the KMS API.
+Before using Google Cloud APIs, you must authenticate your Java application. The easiest way to do this is by setting up a service account and downloading a service account key file (JSON). This service account should have the appropriate permissions to interact with the KMS API.
 
 *Go to the Google Cloud Console. *Navigate to IAM & Admin → Service Accounts. *Create a new service account or select an existing one. *Assign the necessary permissions (e.g., Cloud KMS Admin, or Cloud KMS CryptoKey Encrypter/Decrypter). *Download the private key JSON file.
 
