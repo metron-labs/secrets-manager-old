@@ -17,6 +17,7 @@ public class IntegrationUtils
 
     public static async Task<byte[]> EncryptBufferAsync(EncryptBufferOptions options, ILogger logger)
     {
+        logger.LogInformation("Encrypting buffer...");
         try
         {
             // Step 1: Generate a random 32-byte AES key
@@ -35,7 +36,7 @@ public class IntegrationUtils
 
                 aes.Encrypt(nonce, plaintextBytes, ciphertext, tag);
             }
-
+            logger.LogDebug("Encryption with AES key completed");
             var encryptOptions = new EncryptOptions
             {
                 KeyProperties = options.KeyProperties,
@@ -45,8 +46,8 @@ public class IntegrationUtils
                 EncryptionAlgorithm = options.EncryptionAlgorithm,
             };
 
-            var EncryptedKey = options.IsAsymmetric ? await EncryptDataAsymmetric(encryptOptions) : await EncryptDataSymmetric(encryptOptions);
-
+            var EncryptedKey = options.IsAsymmetric ? await EncryptDataAsymmetric(encryptOptions,logger) : await EncryptDataSymmetric(encryptOptions,logger);
+            logger.LogDebug("Encryption with KMS key completed");
             // Step 5: Build the encrypted blob
             using (MemoryStream ms = new MemoryStream())
             {
@@ -58,6 +59,7 @@ public class IntegrationUtils
                     WriteLengthPrefixed(writer, tag);
                     WriteLengthPrefixed(writer, ciphertext);
                 }
+                logger.LogDebug("Encryption completed and encoding and creating file content completed");
                 return ms.ToArray();
             }
         }
@@ -72,11 +74,13 @@ public class IntegrationUtils
     {
         try
         {
+            logger.LogInformation("Decrypting buffer...");
             // Step 1: Validate BLOB_HEADER
             byte[] header = new byte[IntegrationConstants.HEADER_SIZE];
             Array.Copy(options.Ciphertext, header, IntegrationConstants.HEADER_SIZE);
             if (!header.AsEnumerable().SequenceEqual(IntegrationConstants.BLOB_HEADER))
             {
+                logger.LogError("Invalid ciphertext structure: invalid header. maybe the data is corrupted.");
                 throw new InvalidOperationException("Invalid ciphertext structure: invalid header.");
             }
 
@@ -98,9 +102,11 @@ public class IntegrationUtils
                 parts[i] = options.Ciphertext[pos..(pos + partLength)];
                 pos += partLength;
             }
-
-            if (parts.Length != 4)
+            logger.LogDebug("Splitting the decryption data content into parts is completed. Success is still pending");
+            if (parts.Length != 4){
+                logger.LogError("Invalid ciphertext structure: incorrect number of parts. maybe the data is corrupted.");
                 throw new InvalidOperationException("Invalid ciphertext structure: incorrect number of parts.");
+            }
 
             byte[] encryptedKey = parts[0];
             byte[] nonce = parts[1];
@@ -118,8 +124,8 @@ public class IntegrationUtils
                 EncryptionAlgorithm = options.EncryptionAlgorithm,
             };
 
-            var decryptedKey = await DecryptData(decryptData);
-
+            var decryptedKey = await DecryptData(decryptData,logger);
+            logger.LogDebug("Decryption with KMS key completed");
             // Step 4: Decrypt the message using AES-GCM
             try
             {
@@ -127,7 +133,7 @@ public class IntegrationUtils
                 byte[] decryptedData = new byte[encryptedText.Length];
 
                 aesGcm.Decrypt(nonce, encryptedText, tag, decryptedData);
-
+                logger.LogDebug("Decryption with AES key completed");
                 // Step 5: Convert decrypted data to a UTF-8 string
                 return Encoding.UTF8.GetString(decryptedData);
             }
@@ -145,34 +151,38 @@ public class IntegrationUtils
     }
 
 
-    public static async Task<byte[]> EncryptDataAsymmetric(EncryptOptions options)
-    {
+    public static async Task<byte[]> EncryptDataAsymmetric(EncryptOptions options,ILogger logger)
+    {   
+        logger.LogDebug("trying to Extract resource name");
         string keyName = options.KeyProperties.ToResourceName();
-
+        
         // Get the public key from Cloud KMS
         PublicKey publicKey = await options.CryptoClient.GetPublicKeyAsync(new GetPublicKeyRequest { Name = keyName });
+        logger.LogDebug("Trying to extract public key from given resource name");
 
         if (publicKey.Name != keyName)
         {
+            logger.LogError("GetPublicKey: request corrupted in-transit/ wrong key retrieved. expected {expectedKeyName} but got {receivedKeyName}", keyName, publicKey.Name);
             throw new Exception("GetPublicKey: request corrupted in-transit");
         }
 
         string[] blocks = publicKey.Pem.Split("-", StringSplitOptions.RemoveEmptyEntries);
         byte[] pem = Convert.FromBase64String(blocks[1]);
-
+        logger.LogDebug("Extracted public key from given resource name, converted from pem to bytes. RSA encryption pending.");
 
         // Encrypt using RSA and OAEP padding
         using RSA rsa = RSA.Create();
         rsa.ImportSubjectPublicKeyInfo(pem, out _);
 
-        RSAEncryptionPadding padding = GetPadding(options.EncryptionAlgorithm);
+        RSAEncryptionPadding padding = GetPadding(options.EncryptionAlgorithm,logger);
         byte[] ciphertext = rsa.Encrypt(options.Message, padding);
-
+        logger.LogDebug("RSA encryption completed");
         return ciphertext;
     }
 
-    public static async Task<byte[]> EncryptDataSymmetric(EncryptOptions options)
+    public static async Task<byte[]> EncryptDataSymmetric(EncryptOptions options,ILogger logger)
     {
+        logger.LogDebug("trying to Extract resource name");
         string keyName = options.KeyProperties.ToResourceName();
         byte[] encodedData = options.Message;
 
@@ -182,48 +192,53 @@ public class IntegrationUtils
             Name = keyName,
             Plaintext = ByteString.CopyFrom(encodedData),
         };
-
+        logger.LogDebug("Trying to encrypt data with given resource name");
         EncryptResponse encryptResponse = await kmsClient.EncryptAsync(request);
         byte[] ciphertext = encryptResponse.Ciphertext.ToByteArray();
-
+        logger.LogDebug("Encryption with KMS key completed");
         return ciphertext;
     }
 
     public static async Task<byte[]> DecryptData(
-        DecryptOptions options)
+        DecryptOptions options,ILogger logger)
     {
 
         if (options.IsAsymmetric)
         {
+            logger.LogDebug("Received asymmetric decryption request");
             var request = new AsymmetricDecryptRequest
             {
                 Name = options.KeyProperties.ToResourceName(),
                 Ciphertext = ByteString.CopyFrom(options.CipherText),
             };
+            logger.LogDebug("Trying to decrypt data with given resource name {resourceName}", request.Name);
             var response = await options.CryptoClient.AsymmetricDecryptAsync(request);
-
+            logger.LogDebug("Decryption with KMS key completed");
             return response.Plaintext.ToByteArray();
         }
         else
         {
+            logger.LogDebug("Received symmetric decryption request");
             var request = new DecryptRequest
             {
                 Name = options.KeyProperties.ToKeyName(),
                 Ciphertext = ByteString.CopyFrom(options.CipherText),
             };
+            logger.LogDebug("Trying to decrypt data with given resource name {resourceName}", request.Name);
             var response = await options.CryptoClient.DecryptAsync(request);
-
+            logger.LogDebug("Decryption with KMS key completed");
             return response.Plaintext.ToByteArray();
         }
     }
 
 
-    private static RSAEncryptionPadding GetPadding(string encryptionAlgorithm)
+    private static RSAEncryptionPadding GetPadding(string encryptionAlgorithm,ILogger logger)
     {
         if (SupportedEncryptionAlgorithms.TryGetValue(encryptionAlgorithm, out RSAEncryptionPadding? hashAlgorithm))
         {
             return hashAlgorithm;
         }
+        logger.LogError("Unsupported encryption algorithm is used for the provided key: {}", encryptionAlgorithm);
         throw new Exception("Unsupported encryption algorithm is used for the provided key");
         
     }

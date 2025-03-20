@@ -130,6 +130,7 @@ namespace GCPKeyManagement
                 };
                 // Encrypt an empty configuration and write to the file
                 byte[] blob = await IntegrationUtils.EncryptBufferAsync(options, logger);
+                logger.LogDebug("Config file encryption completed");
                 await File.WriteAllBytesAsync(configFileLocation, blob);
 
                 logger.LogInformation("Config file created at: {Path}", configFileLocation);
@@ -143,7 +144,7 @@ namespace GCPKeyManagement
         private async Task LoadConfigAsync()
         {
             await CreateConfigFileIfMissingAsync();
-
+            logger.LogDebug("Loading config file {Path}", configFileLocation);
             try
             {
                 // Read the config file
@@ -188,7 +189,7 @@ namespace GCPKeyManagement
                 {
                     string configData = Encoding.UTF8.GetString(contents);
                     parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-
+                    logger.LogDebug("Valid JSON parsed successfully.");
                     if (parsedConfig != null)
                     {
                         config = parsedConfig;
@@ -257,6 +258,9 @@ namespace GCPKeyManagement
 
                 encryptionAlgorithm = key.VersionTemplate?.Algorithm.ToString() ?? string.Empty;
                 string keyPurposeDetails = key.Purpose.ToString();
+
+                logger.LogDebug("Key purpose: {KeyPurpose}. encryptionAlgorithm: {EncryptionAlgorithm}", keyPurposeDetails,encryptionAlgorithm);
+                
                 var exists = Array.IndexOf(IntegrationConstants.SupportedKeySpecs, keyPurposeDetails);
                 if (exists < 0)
                 {
@@ -282,7 +286,7 @@ namespace GCPKeyManagement
                 Dictionary<string, string> currentConfig = config ?? new();
                 string configJson = SerializeConfig(currentConfig);
                 string configHash = ComputeMD5Hash(configJson);
-
+                logger.LogDebug("Computed config hash after serializing the data received by SaveConfigAsync");
                 // Compare updatedConfig hash with current config hash
                 if (updatedConfig != null && updatedConfig.Count > 0)
                 {
@@ -291,6 +295,7 @@ namespace GCPKeyManagement
 
                     if (updatedConfigHash != configHash)
                     {
+                        logger.LogDebug("Updated config as its current config is different from given config");
                         configHash = updatedConfigHash;
                         config = new Dictionary<string, string>(updatedConfig);
                     }
@@ -303,6 +308,7 @@ namespace GCPKeyManagement
                     return;
                 }
 
+                logger.LogDebug("Checking configuration file presence and creating one if its absent");
                 // Ensure the config file exists
                 await CreateConfigFileIfMissingAsync();
 
@@ -319,7 +325,7 @@ namespace GCPKeyManagement
                 // Encrypt the config JSON and write to the file
                 byte[] blob = await IntegrationUtils.EncryptBufferAsync(options, logger);
                 await File.WriteAllBytesAsync(configFileLocation, blob);
-
+                logger.LogDebug("Config file saved successfully");
                 // Update the last saved config hash
                 lastSavedConfigHash = configHash;
             }
@@ -329,7 +335,7 @@ namespace GCPKeyManagement
             }
         }
 
-        public async Task<string> DecryptConfigAsync(bool autosave = true)
+        public async Task<string> DecryptConfigAsync(bool autosave )
         {
             byte[] ciphertext;
             string plaintext = "";
@@ -347,7 +353,7 @@ namespace GCPKeyManagement
                 if (ciphertext.Length == 0)
                 {
                     logger.LogWarning("Empty config file {File}", configFileLocation);
-                    return "";
+                    return plaintext;
                 }
             }
             catch (Exception ex)
@@ -375,7 +381,7 @@ namespace GCPKeyManagement
                 }
                 else if (autosave)
                 {
-                    // Optionally autosave the decrypted content
+                    logger.LogDebug("Autosave config flag has been passed as {autosave}, hence saving..",autosave);
                     await File.WriteAllTextAsync(configFileLocation, plaintext);
                 }
             }
@@ -392,18 +398,20 @@ namespace GCPKeyManagement
         {
             var oldKeyConfig = keyConfig;
             var oldKmsClient = ksmClient;
-
+            logger.LogDebug("changing key configuration");
             try
             {
                 // Check if config needs initialization
                 if (config == null || (config is System.Collections.ICollection collection && collection.Count == 0))
                 {
+                    logger.LogDebug("Config is null or empty, initializing it");
                     await LoadConfigAsync();
                 }
 
                 keyConfig = newGcpKeyConfig;
                 await GetKeyDetailsAsync();
                 await SaveConfigAsync(new Dictionary<string, string>(), true);
+                logger.LogInformation("Successfully changed the key to '{newGcpKeyConfig}' for config '{configFileLocation}'", newGcpKeyConfig, configFileLocation);
             }
             catch (Exception ex)
             {
