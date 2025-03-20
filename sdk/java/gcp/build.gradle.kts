@@ -28,7 +28,7 @@ dependencies {
     }
 	implementation("ch.qos.logback:logback-classic:1.2.6")
 	implementation("ch.qos.logback:logback-core:1.2.6") 	
-   
+   	  implementation("com.google.auth:google-auth-library-oauth2-http:1.33.0")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
