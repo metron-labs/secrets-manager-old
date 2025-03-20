@@ -31,7 +31,7 @@ namespace AWSKeyManagement
 
         public AWSKeyValueStorage(string keyId, string? configFileLocation = null, AWSSessionConfig? credentials = null, ILogger<AWSKeyValueStorage>? logger = null)
         {
-            this.logger = logger ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AWSKeyValueStorage>();
+            this.logger = GetLogger(logger);
             this.keyId = keyId;
             if (configFileLocation == null)
             {
@@ -47,6 +47,14 @@ namespace AWSKeyManagement
             lastSavedConfigHash = "";
             GetKeyDetailsAsync().Wait();
             LoadConfigAsync().Wait();
+        }
+
+         private ILogger GetLogger(ILogger? logger){
+            return logger ?? LoggerFactory.Create(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Information);
+                builder.AddConsole();
+            }).CreateLogger<AWSKeyValueStorage>();
         }
 
         public string? GetString(string key)
