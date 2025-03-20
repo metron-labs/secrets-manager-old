@@ -25,17 +25,13 @@ namespace AzureKeyVault
         private Dictionary<string, string> config = new();
         private string lastSavedConfigHash;
         private readonly string configFileLocation = DefaultConfigFileLocation;
-        private readonly ILogger logger;
+        private ILogger logger;
         public TokenCredential azureCredentials { get; private set; }
 
-        public AzureKeyValueStorage(string keyId, string? configFileLocation = null, AzureSessionConfig? credentials = null, ILogger<AzureKeyValueStorage>? logger = null)
+        public AzureKeyValueStorage(string keyId, string? configFileLocation = null, AzureSessionConfig? credentials = null, ILogger? logger = null)
         {
             this.keyId = keyId;
-            if (configFileLocation == null)
-            {
-                configFileLocation = DefaultConfigFileLocation;
-            }
-            else
+            if (configFileLocation != null)
             {
                 this.configFileLocation = Path.GetFullPath(configFileLocation);
             }
@@ -58,9 +54,17 @@ namespace AzureKeyVault
                 azureCredentials = new DefaultAzureCredential();
             }
             cryptoClient = new CryptographyClient(new Uri(keyId), azureCredentials);
-            this.logger = logger ?? LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<AzureKeyValueStorage>();
+            this.logger = GetLogger(logger);
             lastSavedConfigHash = "";
             LoadConfigAsync().Wait();
+        }
+
+        private ILogger GetLogger(ILogger? logger){
+            return logger ?? LoggerFactory.Create(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Information);
+                builder.AddConsole();
+            }).CreateLogger<AzureKeyValueStorage>();
         }
 
         public string? GetString(string key)
