@@ -2,7 +2,7 @@
 
 Protect Secrets Manager connection details with AWS KMS
 
-Keeper Secrets Manager integrates with AWS KMS in order to provide protection for Keeper Secrets Manager configuration files.  With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
+Keeper Secrets Manager integrates with AWS KMS in order to provide protection for Keeper Secrets Manager configuration files. With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
 Features
 
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with AWS KMS (Symmetric/Asymmetric Key) 
