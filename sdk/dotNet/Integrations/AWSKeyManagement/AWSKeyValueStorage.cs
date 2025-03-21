@@ -386,7 +386,7 @@ namespace AWSKeyManagement
             {
                 // Update the key and reinitialize the CryptographyClient
                 keyId = newKeyId;
-                if(awsSessionConfig != null){
+                if(awsSessionConfig == null){
                     awsSessionConfig = awsCredentials;
                 }
                 cryptoClient = new AwsKmsClient( awsSessionConfig,logger).GetCryptoClient();
