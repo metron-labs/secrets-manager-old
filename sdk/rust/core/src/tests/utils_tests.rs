@@ -646,11 +646,11 @@ mod get_windows_user_sid_and_name_tests {
 mod set_config_mode_tests {
     use crate::utils::set_config_mode;
     use std::env;
-    // #[cfg(target_os = "windows")]
-    // use std::fs::Permissions;
-    // use std::fs::{self, File};
-    // #[cfg(target_os = "windows")]
-    // use std::io;
+    #[cfg(target_os = "windows")]
+    use std::fs::Permissions;
+    use std::fs::{self, File};
+    #[cfg(target_os = "windows")]
+    use std::io;
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
 
@@ -776,7 +776,7 @@ mod check_config_mode_tests {
         #[cfg(unix)]
         {
             let mut permissions = fs::metadata(&path).unwrap().permissions();
-            permissions.set_mode(mode);
+            permissions.set_mode(_mode);
             fs::set_permissions(&path, permissions).expect("Unable to set permissions");
 
             // // Adjust ownership (Unix only)
