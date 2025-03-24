@@ -20,18 +20,25 @@ public class AwsKmsClient
         }
         else
         {
-            if (awsSessionConfig.AwsAccessKeyId == null || awsSessionConfig.AwsSecretAccessKey == null)
+            if (awsSessionConfig.AwsAccessKeyId != null && awsSessionConfig.AwsSecretAccessKey != null){
+                logger.LogInformation("AWS Access Key ID and Secret Access Key are not given, choosing credentials from given credentials");
+            }
+            else if (awsSessionConfig.AwsAccessKeyId == null || awsSessionConfig.AwsSecretAccessKey == null)
             {
-                logger.LogInformation("AWS Access Key ID and Secret Access Key are not given, choosing credentials from Environment");
                 awsSessionConfig.AwsAccessKeyId = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
                 awsSessionConfig.AwsSecretAccessKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
             }
-            if (awsSessionConfig.AwsAccessKeyId != null && awsSessionConfig.AwsSecretAccessKey != null && awsSessionConfig.RegionName == " ")
+            if (awsSessionConfig.AwsAccessKeyId != null && awsSessionConfig.AwsSecretAccessKey != null)
             {
+                logger.LogInformation("AWS Access Key ID and Secret Access Key are not given, choosing credentials from Environment");
                 var credentials = new BasicAWSCredentials(
                     awsSessionConfig.AwsAccessKeyId,
                     awsSessionConfig.AwsSecretAccessKey
                 );
+                if (awsSessionConfig.RegionName == null || awsSessionConfig.RegionName == "")
+                {
+                    throw new Exception("AWS Region is not given");
+                }
                 kmsClient = new AmazonKeyManagementServiceClient(credentials, RegionEndpoint.GetBySystemName(awsSessionConfig.RegionName));
             }
             else
