@@ -16,8 +16,7 @@ namespace GCPKeyManagement
     public class GCPKeyValueStorage : IKeyValueStorage
     {
         private const string DefaultConfigFileLocation = "client-config.json";
-
-        private GCPKeyConfig keyConfig;
+        private bool IsInitialized = false; private GCPKeyConfig keyConfig;
         private GCPKMSClient ksmClient;
         private KeyManagementServiceClient cryptoClient;
         private Dictionary<string, string> config = new();
@@ -34,7 +33,7 @@ namespace GCPKeyManagement
             this.keyConfig = keyConfig;
             if (configFileLocation == null)
             {
-                configFileLocation = DefaultConfigFileLocation;
+                configFileLocation = Path.GetFullPath(DefaultConfigFileLocation);
             }
             else
             {
@@ -44,11 +43,16 @@ namespace GCPKeyManagement
             ksmClient = credentials ?? new GCPKMSClient();
             cryptoClient = ksmClient.GetCryptoClient();
             lastSavedConfigHash = "";
-            GetKeyDetailsAsync().Wait();
-            LoadConfigAsync().Wait();
         }
 
-        private ILogger GetLogger(ILogger? logger){
+        private async Task InitializeClient(){
+            await GetKeyDetailsAsync();
+            await LoadConfigAsync();
+            IsInitialized =  true;
+        }
+
+        private ILogger GetLogger(ILogger? logger)
+        {
             return logger ?? LoggerFactory.Create(builder =>
             {
                 builder.SetMinimumLevel(LogLevel.Information);
@@ -58,6 +62,9 @@ namespace GCPKeyManagement
 
         public string? GetString(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -67,6 +74,9 @@ namespace GCPKeyManagement
 
         public void SaveString(string key, string value)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -77,6 +87,9 @@ namespace GCPKeyManagement
 
         public byte[]? GetBytes(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -88,6 +101,9 @@ namespace GCPKeyManagement
 
         public void SaveBytes(string key, byte[] value)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -98,6 +114,9 @@ namespace GCPKeyManagement
 
         public void Delete(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             config.Remove(key);
             SaveConfigAsync(config).Wait();
         }
@@ -143,8 +162,13 @@ namespace GCPKeyManagement
 
         private async Task LoadConfigAsync()
         {
+            logger.LogInformation("Loading config file {Path}", configFileLocation);
             await CreateConfigFileIfMissingAsync();
-            logger.LogDebug("Loading config file {Path}", configFileLocation);
+            logger.LogDebug("Created config file in path if missing else validating.. {Path}", configFileLocation);
+            // Check if the content is plain JSON
+            Dictionary<string, string>? parsedConfig = null;
+            Exception? jsonError = null;
+            bool decryptionError = false;
             try
             {
                 // Read the config file
@@ -153,20 +177,22 @@ namespace GCPKeyManagement
                 {
                     string configData = File.ReadAllText(configFileLocation);
 
-                    try
+                    parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
+                    contents = Encoding.UTF8.GetBytes(configData);
+                    logger.LogDebug("Valid JSON parsed successfully.");
+                    if (parsedConfig != null)
                     {
-                        bool fileExists = File.Exists(configFileLocation);
-                        var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-                        contents = Encoding.UTF8.GetBytes(configData);
-                        logger.LogInformation("Valid JSON parsed successfully.");
+                        config = parsedConfig;
+                        await SaveConfigAsync(config);
+                        lastSavedConfigHash = ComputeMD5Hash(SerializeConfig(config));
+                        return;
                     }
-                    catch (Exception ex)
-                    {
-                        logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
-                        contents = await File.ReadAllBytesAsync(configFileLocation);
-                    }
-
                     logger.LogInformation("Loaded config file {Path}", configFileLocation);
+                }
+                catch (JsonException ex){
+                    logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
+                    contents = await File.ReadAllBytesAsync(configFileLocation);
+                    jsonError = ex;
                 }
                 catch (Exception ex)
                 {
@@ -180,34 +206,12 @@ namespace GCPKeyManagement
                     contents = Encoding.UTF8.GetBytes("{}");
                 }
 
-                // Check if the content is plain JSON
-                Dictionary<string, string>? parsedConfig = null;
-                Exception? jsonError = null;
-                bool decryptionError = false;
-
-                try
-                {
-                    string configData = Encoding.UTF8.GetString(contents);
-                    parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-                    logger.LogDebug("Valid JSON parsed successfully.");
-                    if (parsedConfig != null)
-                    {
-                        config = parsedConfig;
-                        await SaveConfigAsync(config);
-                        lastSavedConfigHash = ComputeMD5Hash(SerializeConfig(config));
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    jsonError = ex;
-                }
-
                 // If parsing as JSON failed, try decryption
                 if (jsonError != null)
                 {
                     try
                     {
+                        logger.LogDebug("Config file is not a valid JSON file: {Message}", jsonError.Message);
                         DecryptBufferOptions options = new DecryptBufferOptions
                         {
                             KeyPurpose = keyType,
@@ -219,6 +223,7 @@ namespace GCPKeyManagement
                         };
                         string decryptedJson = await IntegrationUtils.DecryptBufferAsync(options, logger);
                         parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedJson);
+                        logger.LogDebug("Decrypted config file successfully.");
 
                         if (parsedConfig != null)
                         {
@@ -248,7 +253,7 @@ namespace GCPKeyManagement
             }
         }
 
-        public async Task GetKeyDetailsAsync()
+        private async Task GetKeyDetailsAsync()
         {
             try
             {
@@ -259,8 +264,8 @@ namespace GCPKeyManagement
                 encryptionAlgorithm = key.VersionTemplate?.Algorithm.ToString() ?? string.Empty;
                 string keyPurposeDetails = key.Purpose.ToString();
 
-                logger.LogDebug("Key purpose: {KeyPurpose}. encryptionAlgorithm: {EncryptionAlgorithm}", keyPurposeDetails,encryptionAlgorithm);
-                
+                logger.LogDebug("Key purpose: {KeyPurpose}. encryptionAlgorithm: {EncryptionAlgorithm}", keyPurposeDetails, encryptionAlgorithm);
+
                 var exists = Array.IndexOf(IntegrationConstants.SupportedKeySpecs, keyPurposeDetails);
                 if (exists < 0)
                 {
@@ -335,8 +340,11 @@ namespace GCPKeyManagement
             }
         }
 
-        public async Task<string> DecryptConfigAsync(bool autosave )
+        public async Task<string> DecryptConfigAsync(bool autosave)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             byte[] ciphertext;
             string plaintext = "";
 
@@ -381,7 +389,7 @@ namespace GCPKeyManagement
                 }
                 else if (autosave)
                 {
-                    logger.LogDebug("Autosave config flag has been passed as {autosave}, hence saving..",autosave);
+                    logger.LogDebug("Autosave config flag has been passed as {autosave}, hence saving..", autosave);
                     await File.WriteAllTextAsync(configFileLocation, plaintext);
                 }
             }
@@ -396,6 +404,9 @@ namespace GCPKeyManagement
 
         public async Task<bool> ChangeKeyAsync(GCPKeyConfig newGcpKeyConfig)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             var oldKeyConfig = keyConfig;
             var oldKmsClient = ksmClient;
             logger.LogDebug("changing key configuration");
