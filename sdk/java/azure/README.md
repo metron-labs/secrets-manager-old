@@ -2,7 +2,7 @@
 
 Protect Secrets Manager connection details with Azure Key Vault
 
-Keeper Secrets Manager integrates with Azure Key Vault in order to provide protection for Keeper Secrets Manager configuration files.  With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
+Keeper Secrets Manager integrates with Azure Key Vault in order to provide protection for Keeper Secrets Manager configuration files. With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
 Features
 
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with Azure Key Vault
@@ -131,7 +131,7 @@ Initilaizes AzureKeyValueStorage
 
         key_id URI of the master key - if missing read from env KSM_AZ_KEY_ID
         key_id URI may also include version in case key has auto rotate enabled
-        ex. key_id = "https://<your vault>.vault.azure.net/keys/<key name>/fe4fdcab688c479a9aa80f01ffeac26"
+        ex. key_id = "https://<vault_name>.vault.azure.net/keys/<key_name>/<key_version>"
         The master key needs WrapKey, UnwrapKey privileges
 
         config_file_location provides custom config file location - if missing read from env KSM_CONFIG_FILE
@@ -180,7 +180,7 @@ import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
 public class Library {
 	
 	public static void main(String args[]) throws Exception {
-		String oneTimeToken = "[One Time Token]";
+		String oneTimeToken = "[One_Time_Token]";
 		String keyId = "https://<vault-name>.vault.azure.net/keys/<keyname>/<keyversion>";
 		String configFileLocation="client_config_test.json";
 		String azTenantId = "<tenant-id>";
