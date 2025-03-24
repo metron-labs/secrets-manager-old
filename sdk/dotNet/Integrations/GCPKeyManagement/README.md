@@ -69,7 +69,7 @@ The storage will require a GCP Key ID, as well as the name of the Secrets Manage
             bool decryptConfiguration = true;
 
             var path = "gcp_ksm_conf.json";
-            var dotnet_access_token = "US:DActoSYy40W1tyX-thKxPbtWuVFHh7bS1lmFyhko1KA";
+            var dotnet_access_token = "[One_Time_Token]";
 
             var loggerFactory = LoggerFactory.Create(builder =>
             {
