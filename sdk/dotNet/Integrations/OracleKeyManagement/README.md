@@ -7,7 +7,7 @@ Keeper Secrets Manager integrates with **Oracle Key Vault Management Service (OC
 * Requires only minor code modifications for immediate protection. Works with all Keeper Secrets Manager **dotnet SDK** functionality.
 
 ## Prerequisites
-* Supports the JavaScript Secrets Manager SDK.
+* Supports the dotNet Secrets Manager SDK.
 * Supports dotnet version `net9.0`
 * Requires the **OCI.DotNetSDK.Keymanagement** package from OCI SDK.
 * OCI KMS Key needs `ENCRYPT` and `DECRYPT` permissions.
@@ -16,7 +16,7 @@ Keeper Secrets Manager integrates with **Oracle Key Vault Management Service (OC
 
 1. Install KSM Storage Module
 
-The Secrets Manager oracle KSM module can be installed using npm
+The Secrets Manager oracle KSM module can be installed using dotnet nuget package manager.
 
 > `dotnet add package Keeper.SecretsManager.OracleKeyManagement`
 
@@ -140,10 +140,10 @@ below is how we can use a logger of desired level, If none are selected then log
             builder.SetMinimumLevel(LogLevel.Debug);
             builder.AddConsole();
         });
-    var logger = loggerFactory.CreateLogger<AWSKeyValueStorage>();
-    var aws_storage = new AWSKeyValueStorage(keyId, path, awsSessionConfig2,logger);
+    var logger = loggerFactory.CreateLogger<OracleKeyValueStorage>();
+    var oracle_storage = new OracleKeyValueStorage(keyId2,keyVersionId2,path,ociSessionConfig1,logger );
 ```
 
 You're ready to use the KSM integration Using the Oracle KMS Integration 👍
 
-Once setup, the Secrets Manager Oracle KMS integration supports all Secrets Manager JavaScript SDK functionality.  Your code will need to be able to access the Oracle KMS APIs in order to manage the decryption of the configuration file when run. 
+Once setup, the Secrets Manager Oracle KMS integration supports all Secrets Manager dotNet SDK functionality.  Your code will need to be able to access the Oracle KMS APIs in order to manage the decryption of the configuration file when run. 
