@@ -19,7 +19,7 @@ namespace AzureKeyVault
     public class AzureKeyValueStorage : IKeyValueStorage
     {
         private const string DefaultConfigFileLocation = "client-config.json";
-
+        private bool IsInitiated = false;
         private string keyId;
         private CryptographyClient cryptoClient;
         private Dictionary<string, string> config = new();
@@ -31,10 +31,15 @@ namespace AzureKeyVault
         public AzureKeyValueStorage(string keyId, string? configFileLocation = null, AzureSessionConfig? credentials = null, ILogger? logger = null)
         {
             this.keyId = keyId;
-            if (configFileLocation != null)
+            if (configFileLocation == null)
+            {
+                configFileLocation = Path.GetFullPath(DefaultConfigFileLocation);
+            }
+            else
             {
                 this.configFileLocation = Path.GetFullPath(configFileLocation);
             }
+
 
             // Initialize Azure Key Vault CryptographyClient
             if (credentials != null &&
@@ -56,7 +61,11 @@ namespace AzureKeyVault
             cryptoClient = new CryptographyClient(new Uri(keyId), azureCredentials);
             this.logger = GetLogger(logger);
             lastSavedConfigHash = "";
-            LoadConfigAsync().Wait();
+        }
+
+        private async Task InitializeClient(){
+            await LoadConfigAsync();
+            IsInitialized =  true;
         }
 
         private ILogger GetLogger(ILogger? logger){
@@ -69,6 +78,9 @@ namespace AzureKeyVault
 
         public string? GetString(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -78,6 +90,9 @@ namespace AzureKeyVault
 
         public void SaveString(string key, string value)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -88,6 +103,9 @@ namespace AzureKeyVault
 
         public byte[]? GetBytes(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -99,6 +117,9 @@ namespace AzureKeyVault
 
         public void SaveBytes(string key, byte[] value)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -109,6 +130,9 @@ namespace AzureKeyVault
 
         public void Delete(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             config.Remove(key);
             SaveConfigAsync(config).Wait();
         }
@@ -142,10 +166,15 @@ namespace AzureKeyVault
             }
         }
 
-        public async Task LoadConfigAsync()
+        private async Task LoadConfigAsync()
         {
+            logger.LogInformation("Loading config file {Path}", configFileLocation);
             await CreateConfigFileIfMissingAsync();
-
+            logger.LogDebug("Created config file in path if missing else validating.. {Path}", configFileLocation);
+            // Check if the content is plain JSON
+            Dictionary<string, string>? parsedConfig = null;
+            Exception? jsonError = null;
+            bool decryptionError = false;
             try
             {
                 // Read the config file
@@ -154,20 +183,22 @@ namespace AzureKeyVault
                 {
                     string configData = File.ReadAllText(configFileLocation);
 
-                    try
+                    parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
+                    contents = Encoding.UTF8.GetBytes(configData);
+                    logger.LogDebug("Valid JSON parsed successfully.");
+                    if (parsedConfig != null)
                     {
-                        bool fileExists = File.Exists(configFileLocation);
-                        var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-                        contents = Encoding.UTF8.GetBytes(configData);
-                        logger.LogInformation("Valid JSON parsed successfully.");
+                        config = parsedConfig;
+                        await SaveConfigAsync(config);
+                        lastSavedConfigHash = ComputeMD5Hash(SerializeConfig(config));
+                        return;
                     }
-                    catch (Exception ex)
-                    {
-                        logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
-                        contents = await File.ReadAllBytesAsync(configFileLocation);
-                    }
-
                     logger.LogInformation("Loaded config file {Path}", configFileLocation);
+                }
+                catch (JsonException ex){
+                    logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
+                    contents = await File.ReadAllBytesAsync(configFileLocation);
+                    jsonError = ex;
                 }
                 catch (Exception ex)
                 {
@@ -181,36 +212,23 @@ namespace AzureKeyVault
                     contents = Encoding.UTF8.GetBytes("{}");
                 }
 
-                // Check if the content is plain JSON
-                Dictionary<string, string>? parsedConfig = null;
-                Exception? jsonError = null;
-                bool decryptionError = false;
-
-                try
-                {
-                    string configData = Encoding.UTF8.GetString(contents);
-                    parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-
-                    if (parsedConfig != null)
-                    {
-                        config = parsedConfig;
-                        await SaveConfigAsync(config);
-                        lastSavedConfigHash = ComputeMD5Hash(SerializeConfig(config));
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    jsonError = ex;
-                }
-
                 // If parsing as JSON failed, try decryption
                 if (jsonError != null)
                 {
                     try
                     {
-                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(cryptoClient, contents, logger);
+                        logger.LogDebug("Config file is not a valid JSON file: {Message}", jsonError.Message);
+                        DecryptOptions options = new DecryptOptions
+                        {
+                            KeyId = KeyId,
+                            keyVersionId = KeyVersionId,
+                            CipherText = contents,
+                            IsAsymmetric = IsAsymmetric,
+                            CryptoClient = cryptoClient,
+                        };
+                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(options, logger);
                         parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedJson);
+                        logger.LogDebug("Decrypted config file successfully.");
 
                         if (parsedConfig != null)
                         {
@@ -240,7 +258,7 @@ namespace AzureKeyVault
             }
         }
 
-        public async Task SaveConfigAsync(Dictionary<string, string>? updatedConfig = null, bool force = false)
+        private async Task SaveConfigAsync(Dictionary<string, string>? updatedConfig = null, bool force = false)
         {
             try
             {
@@ -289,7 +307,9 @@ namespace AzureKeyVault
         {
             byte[] ciphertext;
             string plaintext = "";
-
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             try
             {
                 // Read the config file
@@ -337,9 +357,14 @@ namespace AzureKeyVault
 
         public async Task<bool> ChangeKeyAsync(string newKeyId)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             string oldKeyId = keyId;
             CryptographyClient oldCryptoClient = cryptoClient;
-
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             try
             {
                 // Update the key and reinitialize the CryptographyClient
