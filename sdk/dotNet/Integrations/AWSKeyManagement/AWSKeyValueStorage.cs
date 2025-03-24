@@ -18,7 +18,7 @@ namespace AWSKeyManagement
     public class AWSKeyValueStorage : IKeyValueStorage
     {
         private const string DefaultConfigFileLocation = "client-config.json";
-
+        private bool IsInitialized = false;
         private string keyId;
         private AmazonKeyManagementServiceClient cryptoClient;
         private Dictionary<string, string> config = new();
@@ -35,7 +35,7 @@ namespace AWSKeyManagement
             this.keyId = keyId;
             if (configFileLocation == null)
             {
-                configFileLocation = DefaultConfigFileLocation;
+                configFileLocation = Path.GetFullPath(DefaultConfigFileLocation);
             }
             else
             {
@@ -45,8 +45,12 @@ namespace AWSKeyManagement
             awsCredentials = credentials ?? new AWSSessionConfig();
             cryptoClient = new AwsKmsClient(awsCredentials).GetCryptoClient();
             lastSavedConfigHash = "";
-            GetKeyDetailsAsync().Wait();
-            LoadConfigAsync().Wait();
+        }
+
+        private async Task InitializeClient(){
+            await GetKeyDetailsAsync();
+            await LoadConfigAsync();
+            IsInitialized =  true;
         }
 
          private ILogger GetLogger(ILogger? logger){
@@ -59,6 +63,9 @@ namespace AWSKeyManagement
 
         public string? GetString(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -68,6 +75,9 @@ namespace AWSKeyManagement
 
         public void SaveString(string key, string value)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -78,6 +88,9 @@ namespace AWSKeyManagement
 
         public byte[]? GetBytes(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -89,6 +102,9 @@ namespace AWSKeyManagement
 
         public void SaveBytes(string key, byte[] value)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -99,6 +115,9 @@ namespace AWSKeyManagement
 
         public void Delete(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             config.Remove(key);
             SaveConfigAsync(config).Wait();
         }
@@ -140,8 +159,13 @@ namespace AWSKeyManagement
 
         private async Task LoadConfigAsync()
         {
+            logger.LogInformation("Loading config file {Path}", configFileLocation);
             await CreateConfigFileIfMissingAsync();
-
+            logger.LogDebug("Created config file in path if missing else validating.. {Path}", configFileLocation);
+            // Check if the content is plain JSON
+            Dictionary<string, string>? parsedConfig = null;
+            Exception? jsonError = null;
+            bool decryptionError = false;
             try
             {
                 // Read the config file
@@ -150,20 +174,22 @@ namespace AWSKeyManagement
                 {
                     string configData = File.ReadAllText(configFileLocation);
 
-                    try
+                    parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
+                    contents = Encoding.UTF8.GetBytes(configData);
+                    logger.LogDebug("Valid JSON parsed successfully.");
+                    if (parsedConfig != null)
                     {
-                        bool fileExists = File.Exists(configFileLocation);
-                        var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-                        contents = Encoding.UTF8.GetBytes(configData);
-                        logger.LogInformation("Valid JSON parsed successfully.");
+                        config = parsedConfig;
+                        await SaveConfigAsync(config);
+                        lastSavedConfigHash = ComputeMD5Hash(SerializeConfig(config));
+                        return;
                     }
-                    catch (Exception ex)
-                    {
-                        logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
-                        contents = await File.ReadAllBytesAsync(configFileLocation);
-                    }
-
                     logger.LogInformation("Loaded config file {Path}", configFileLocation);
+                }
+                catch (JsonException ex){
+                    logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
+                    contents = await File.ReadAllBytesAsync(configFileLocation);
+                    jsonError = ex;
                 }
                 catch (Exception ex)
                 {
@@ -177,42 +203,23 @@ namespace AWSKeyManagement
                     contents = Encoding.UTF8.GetBytes("{}");
                 }
 
-                // Check if the content is plain JSON
-                Dictionary<string, string>? parsedConfig = null;
-                Exception? jsonError = null;
-                bool decryptionError = false;
-
-                try
-                {
-                    string configData = Encoding.UTF8.GetString(contents);
-                    parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-
-                    if (parsedConfig != null)
-                    {
-                        config = parsedConfig;
-                        await SaveConfigAsync(config);
-                        lastSavedConfigHash = ComputeMD5Hash(SerializeConfig(config));
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    jsonError = ex;
-                }
-
                 // If parsing as JSON failed, try decryption
                 if (jsonError != null)
                 {
                     try
                     {
-                        DecryptBufferOptions options = new DecryptBufferOptions
+                        logger.LogDebug("Config file is not a valid JSON file: {Message}", jsonError.Message);
+                        DecryptOptions options = new DecryptOptions
                         {
-                            KeyType = keyType,
-                            KeyId = keyId,
-                            Ciphertext = contents
+                            KeyId = KeyId,
+                            keyVersionId = KeyVersionId,
+                            CipherText = contents,
+                            IsAsymmetric = IsAsymmetric,
+                            CryptoClient = cryptoClient,
                         };
-                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(cryptoClient, options, logger);
+                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(options, logger);
                         parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedJson);
+                        logger.LogDebug("Decrypted config file successfully.");
 
                         if (parsedConfig != null)
                         {
@@ -323,6 +330,9 @@ namespace AWSKeyManagement
 
         public async Task<string> DecryptConfigAsync(bool autosave = true)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             byte[] ciphertext;
             string plaintext = "";
 
@@ -379,6 +389,9 @@ namespace AWSKeyManagement
 
         public async Task<bool> ChangeKeyAsync(string newKeyId, AWSSessionConfig? awsSessionConfig = null)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             string oldKeyId = keyId;
             AmazonKeyManagementServiceClient oldCryptoClient = cryptoClient;
 
