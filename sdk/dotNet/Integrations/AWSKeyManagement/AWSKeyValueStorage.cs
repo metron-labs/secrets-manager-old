@@ -53,7 +53,7 @@ namespace AWSKeyManagement
             IsInitialized =  true;
         }
 
-         private ILogger GetLogger(ILogger? logger){
+        private ILogger GetLogger(ILogger? logger){
             return logger ?? LoggerFactory.Create(builder =>
             {
                 builder.SetMinimumLevel(LogLevel.Information);
@@ -209,15 +209,13 @@ namespace AWSKeyManagement
                     try
                     {
                         logger.LogDebug("Config file is not a valid JSON file: {Message}", jsonError.Message);
-                        DecryptOptions options = new DecryptOptions
+                       DecryptBufferOptions options = new DecryptBufferOptions
                         {
-                            KeyId = KeyId,
-                            keyVersionId = KeyVersionId,
-                            CipherText = contents,
-                            IsAsymmetric = IsAsymmetric,
-                            CryptoClient = cryptoClient,
+                            KeyType = keyType,
+                            KeyId = keyId,
+                            Ciphertext = contents
                         };
-                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(options, logger);
+                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(cryptoClient,options, logger);
                         parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedJson);
                         logger.LogDebug("Decrypted config file successfully.");
 

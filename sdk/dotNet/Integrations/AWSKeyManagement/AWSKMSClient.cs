@@ -11,24 +11,43 @@ public class AwsKmsClient
 
     public AwsKmsClient(AWSSessionConfig awsSessionConfig = null, ILogger logger = null)
     {
+        logger = GetLogger(logger);
         if (awsSessionConfig == null)
         {
             kmsClient = new AmazonKeyManagementServiceClient();
         }
         else
-        {   
-            if (awsSessionConfig.AwsAccessKeyId == null || awsSessionConfig.AwsSecretAccessKey == null){
-                logger.LogInformation("AWS Access Key ID and Secret Access Key are not given, choosing default credentials");
+        {
+            if (awsSessionConfig.AwsAccessKeyId == null || awsSessionConfig.AwsSecretAccessKey == null)
+            {
+                logger.LogInformation("AWS Access Key ID and Secret Access Key are not given, choosing credentials from Environment");
                 awsSessionConfig.AwsAccessKeyId = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
                 awsSessionConfig.AwsSecretAccessKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
             }
-            var credentials = new BasicAWSCredentials(
-                awsSessionConfig.AwsAccessKeyId,
-                awsSessionConfig.AwsSecretAccessKey
-            );
+            if (awsSessionConfig.AwsAccessKeyId != null && awsSessionConfig.AwsSecretAccessKey != null && awsSessionConfig.RegionName == " ")
+            {
+                var credentials = new BasicAWSCredentials(
+                    awsSessionConfig.AwsAccessKeyId,
+                    awsSessionConfig.AwsSecretAccessKey
+                );
+                kmsClient = new AmazonKeyManagementServiceClient(credentials, RegionEndpoint.GetBySystemName(awsSessionConfig.RegionName));
+            }
+            else
+            {
+                logger.LogInformation("AWS Access Key ID and Secret Access Key are not given, choosing default credentials from file");
+                kmsClient = new AmazonKeyManagementServiceClient();
 
-            kmsClient = new AmazonKeyManagementServiceClient(credentials, RegionEndpoint.GetBySystemName(awsSessionConfig.RegionName));
+            }
         }
+    }
+
+    private ILogger GetLogger(ILogger? logger)
+    {
+        return logger ?? LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Information);
+            builder.AddConsole();
+        }).CreateLogger<AWSKeyValueStorage>();
     }
 
     public AmazonKeyManagementServiceClient GetCryptoClient()
