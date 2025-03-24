@@ -153,4 +153,4 @@ below is how we can use a logger of desired level, If none are selected then log
 You're ready to use the KSM integration 👍
 Using the Azure Key Vault Integration
 
-Once setup, the Secrets Manager Azure Key Vault integration supports all Secrets Manager JavaScript SDK functionality. Your code will need to be able to access the Azure Key Vault APIs in order to manage the decryption of the configuration file when run. 
+Once setup, the Secrets Manager Azure Key Vault integration supports all Secrets Manager dotNet SDK functionality. Your code will need to be able to access the Azure Key Vault APIs in order to manage the decryption of the configuration file when run. 
