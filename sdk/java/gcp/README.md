@@ -2,12 +2,13 @@
 
 Protect Secrets Manager connection details with GCP KMS
 
-Keeper Secrets Manager integrates with GCP KMS in order to provide protection for Keeper Secrets Manager configuration files.  With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
-Features
+Keeper Secrets Manager integrates with GCP KMS in order to provide protection for Keeper Secrets Manager configuration files. With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
+
+# Features
 
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with GCP KMS (Symmetric/Asymmetric Key) 
 * Protect against unauthorized access to your Secrets Manager connections
-* Requires only minor changes to code for immediate protection.  Works with all Keeper Secrets Manager Java/Kotlin SDK functionality
+* Requires only minor changes to code for immediate protection. Works with all Keeper Secrets Manager Java/Kotlin SDK functionality
 
 # Prerequisites
 
@@ -18,7 +19,11 @@ Features
 # Set Up Authentication
 Before using Google Cloud APIs, you must authenticate your Java application. The easiest way to do this is by setting up a service account and downloading a service account key file (JSON). This service account should have the appropriate permissions to interact with the KMS API.
 
-*Go to the Google Cloud Console. *Navigate to IAM & Admin → Service Accounts. *Create a new service account or select an existing one. *Assign the necessary permissions (e.g., Cloud KMS Admin, or Cloud KMS CryptoKey Encrypter/Decrypter). *Download the private key JSON file.
+* Go to the Google Cloud Console. 
+* Navigate to IAM & Admin → Service Accounts. 
+* Create a new service account or select an existing one. 
+* Assign the necessary permissions (e.g., Cloud KMS Admin, or Cloud KMS CryptoKey Encrypter/Decrypter). 
+* Download the private key JSON file.
 
 You can also set the GOOGLE_APPLICATION_CREDENTIALS environment variable to point to the path of the downloaded key file:
 
@@ -151,26 +156,26 @@ dependencies {
    </details> 
   
   
-** Configure GCP Connection **
+**Configure GCP Connection**
 
-** Initializes GcpKeyValueStorage **
+**Initializes GcpKeyValueStorage**
 
 Configuration variables can be provided as 
 
-     config_file_location provides keeper secret manager config file location - if missing read from env param KSM_CONFIG_FILE
-     It can be export like "export KSM_CONFIG_FILE = <Config File location>"
+    config_file_location provides keeper secret manager config file location - if missing read from env param KSM_CONFIG_FILE
+    It can be export like "export KSM_CONFIG_FILE = <Config File location>"
      
 
 GCPSessionConfig is needed to initialize GCPKeyValueStorage. To initialize GCPSessionConfig, You will need an GCP ProjectId, location, KeyRing, keyId and keyVersion to use the GCP KMS integration.
         
 ```
-     	String projectId = "<GCP project id>";
-	 	String location = "<GCP cloud Location>";
-		String keyRing = "<Key Ring>>";
-		String keyId = "<Key ID>";  //Symmetric or Asymmetric
-		String keyVersion ="<Key Version>";
-		String credentialsPaths = "<credential.json path>";
-    	GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, keyId, keyVersion, credentialsPaths);
+String projectId = "<GCP project id>";
+String location = "<GCP cloud Location>";
+String keyRing = "<Key Ring>>";
+String keyId = "<Key ID>";  //Symmetric or Asymmetric
+String keyVersion ="<Key Version>";
+String credentialsPaths = "<credential.json path>";
+GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, keyId, keyVersion, credentialsPaths);
 ```
 For more information on GCP Configuration see the GCP documentation: https://cloud.google.com/kms/docs/reference/libraries#client-libraries-install-java
  OR
@@ -185,40 +190,46 @@ To do this, use GcpKeyValueStorage as your Secrets Manager storage in the Secret
 The storage will require an GCP KeyId and KeyVersion, as well as the name of the Secrets Manager configuration file which will be encrypted by GCP KMS. Below is the sample Test class
 
 ```
-import static com.keepersecurity.secretsManager.core.SecretsManager.initializeStorage;		
-
-import com.keepersecurity.secretsManager.core.KeeperRecord;
-import com.keepersecurity.secretsManager.core.KeeperRecordData;
-import com.keepersecurity.secretsManager.core.KeeperSecrets;
-import com.keepersecurity.secretsManager.core.SecretsManager;
-import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
-import com.keepersecurity.secretsmanager.gcp.GcpKeyValueStorage;
-import com.keepersecurity.secretsmanager.gcp.GcpSessionConfig;
 import java.security.Security;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import static com.keepersecurity.secretsManager.core.SecretsManager.initializeStorage;
+import com.keepersecurity.secretsmanager.gcp.GcpKeyValueStorage;
+import com.keepersecurity.secretsmanager.gcp.GcpSessionConfig;
+import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
 
-		class Test{
-		   public static void main(String args[]){
-		  			
-				  	String oneTimeToken = "[One Time Token]";
-					String projectId = "<GCP project id>";
-					String location = "<GCP cloud Location>";
-					String keyRing = "<Key Ring>>";
-					String keyId = "<Key ID>";  //Symmetric or Asymmetric
-					String keyVersion ="<Key Version>";
-					String credentialsPaths = "<credential.json path>";
-				    String configFileLocation = "client_config_test.json";
-				   Security.addProvider(new BouncyCastleFipsProvider());
-				try{
-		    			GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, keyId, keyVersion, credentialsPaths);
-						GcpKeyValueStorage storage = new GcpKeyValueStorage(configFileLocation, sessionConfig);
-						initializeStorage(storage, oneTimeToken);
-           			SecretsManagerOptions options = new SecretsManagerOptions(storage);	
-			    	 	//getSecrets(OPTIONS);
-				}catch (Exception e) {
-		  			  System.out.println(e.getMessage());
-		 		}
-	 	   }
-	 	}
+public class Test {
+	public static void main(String args[]){
+			
+	    String oneTimeToken = "One_Time_Token";
+	    String projectId = "projectId";
+	    String location = "cloud_region";
+	    String keyRing = "key_ring_name";
+	    String keyId = "key_id";  //Symmetric or Asymmetric
+	    String keyVersion = "key_version";
+	    String configFileLocation = "client_config_test.json";
+	    String credentialFileLocation = "path_of_gcp_cred_file.json";
+	   // Used for change_key 
+          String updatedKeyId = "updated_key_id"; 
+	   Security.addProvider(new BouncyCastleFipsProvider());
+		try{
+				GcpSessionConfig sessionConfig = new GcpSessionConfig(projectId, location, keyRing, updatedKeyId, keyVersion, credentialFileLocation);
+				GcpKeyValueStorage storage = new GcpKeyValueStorage(configFileLocation, sessionConfig);
+				initializeStorage(storage, oneTimeToken);
+				SecretsManagerOptions options = new SecretsManagerOptions(storage);	
+				boolean isChanged = storage.changeKey(keyId);
+				System.out.println("Key Changed: "+isChanged);
+				
+				String plaintext = storage.decryptConfig(false);
+				System.out.println(plaintext);
+
+				System.out.println("Saving the decrypt config into file");
+				String plainText = storage.decryptConfig(true);
+				
+				//getSecrets(OPTIONS);
+		}catch (Exception e) {
+				  System.out.println(e.getMessage());
+		}
+	}
+}
 			
 ```
