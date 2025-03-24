@@ -7,7 +7,7 @@ Keeper Secrets Manager integrates with AWS KMS in order to provide protection fo
 * Requires only minor changes to code for immediate protection. Works with all Keeper Secrets Manager dotnet SDK functionality.
 
 ## Prerequisites
-* Supports the JavaScript Secrets Manager SDK.
+* Supports the dotNet Secrets Manager SDK.
 * Requires `AWSSDK.KeyManagementService` package.
 * Supports dotnet version `net9.0`
 * Key needs `Encrypt` and `Decrypt` permissions.
