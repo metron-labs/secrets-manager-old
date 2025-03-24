@@ -19,7 +19,7 @@ namespace AzureKeyVault
     public class AzureKeyValueStorage : IKeyValueStorage
     {
         private const string DefaultConfigFileLocation = "client-config.json";
-        private bool IsInitiated = false;
+        private bool IsInitialized = false;
         private string keyId;
         private CryptographyClient cryptoClient;
         private Dictionary<string, string> config = new();
@@ -218,15 +218,8 @@ namespace AzureKeyVault
                     try
                     {
                         logger.LogDebug("Config file is not a valid JSON file: {Message}", jsonError.Message);
-                        DecryptOptions options = new DecryptOptions
-                        {
-                            KeyId = KeyId,
-                            keyVersionId = KeyVersionId,
-                            CipherText = contents,
-                            IsAsymmetric = IsAsymmetric,
-                            CryptoClient = cryptoClient,
-                        };
-                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(options, logger);
+                        
+                        string decryptedJson = await IntegrationUtils.DecryptBufferAsync(cryptoClient, contents, logger);
                         parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedJson);
                         logger.LogDebug("Decrypted config file successfully.");
 
