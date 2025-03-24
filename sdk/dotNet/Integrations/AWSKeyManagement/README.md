@@ -141,4 +141,4 @@ below is how we can use a logger of desired level, If none are selected then log
 
 You're ready to use the KSM integration Using the AWS KMS Integration 👍
 
-Once setup, the Secrets Manager AWS KMS integration supports all Secrets Manager JavaScript SDK functionality.  Your code will need to be able to access the AWS KMS APIs in order to manage the decryption of the configuration file when run. 
+Once setup, the Secrets Manager AWS KMS integration supports all Secrets Manager dotNet SDK functionality.  Your code will need to be able to access the AWS KMS APIs in order to manage the decryption of the configuration file when run. 
