@@ -28,6 +28,7 @@ namespace OracleKeyManagement
         public string KeyId { get; private set; }
         public string KeyVersionId { get; private set; }
 
+        private bool IsInitialized = false;
         private bool IsAsymmetric;
 
         public OracleKeyValueStorage(string KeyId, string KeyVersionId, string? configFileLocation = null, OciSessionConfig? ociSessionConfig = null, ILogger? logger = null)
@@ -37,7 +38,7 @@ namespace OracleKeyManagement
             this.KeyVersionId = KeyVersionId;
             if (configFileLocation == null)
             {
-                configFileLocation = DefaultConfigFileLocation;
+                configFileLocation = Path.GetFullPath(DefaultConfigFileLocation);
             }
             else
             {
@@ -48,8 +49,13 @@ namespace OracleKeyManagement
             cryptoClient = ksmClient.GetCryptoClient();
             managementClient = ksmClient.GetManagementClient();
             lastSavedConfigHash = "";
-            GetKeyDetailsAsync().Wait();
-            LoadConfigAsync().Wait();
+            
+        }
+
+        private async Task InitializeClient(){
+            await GetKeyDetailsAsync();
+            await LoadConfigAsync();
+            IsInitialized =  true;
         }
 
         private ILogger GetLogger(ILogger? logger){
@@ -61,7 +67,10 @@ namespace OracleKeyManagement
         }
 
         public string? GetString(string key)
-        {
+        {   
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -71,6 +80,9 @@ namespace OracleKeyManagement
 
         public void SaveString(string key, string value)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -81,6 +93,9 @@ namespace OracleKeyManagement
 
         public byte[]? GetBytes(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -92,6 +107,9 @@ namespace OracleKeyManagement
 
         public void SaveBytes(string key, byte[] value)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             if (config.Count == 0)
             {
                 LoadConfigAsync().Wait();
@@ -102,6 +120,9 @@ namespace OracleKeyManagement
 
         public void Delete(string key)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             config.Remove(key);
             SaveConfigAsync(config).Wait();
         }
@@ -150,6 +171,10 @@ namespace OracleKeyManagement
             logger.LogInformation("Loading config file {Path}", configFileLocation);
             await CreateConfigFileIfMissingAsync();
             logger.LogDebug("Created config file in path if missing else validating.. {Path}", configFileLocation);
+            // Check if the content is plain JSON
+            Dictionary<string, string>? parsedConfig = null;
+            Exception? jsonError = null;
+            bool decryptionError = false;
             try
             {
                 // Read the config file
@@ -158,20 +183,22 @@ namespace OracleKeyManagement
                 {
                     string configData = File.ReadAllText(configFileLocation);
 
-                    try
+                    parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
+                    contents = Encoding.UTF8.GetBytes(configData);
+                    logger.LogDebug("Valid JSON parsed successfully.");
+                    if (parsedConfig != null)
                     {
-                        bool fileExists = File.Exists(configFileLocation);
-                        var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-                        contents = Encoding.UTF8.GetBytes(configData);
-                        logger.LogInformation("Valid JSON parsed successfully.");
+                        config = parsedConfig;
+                        await SaveConfigAsync(config);
+                        lastSavedConfigHash = ComputeMD5Hash(SerializeConfig(config));
+                        return;
                     }
-                    catch (Exception ex)
-                    {
-                        logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
-                        contents = await File.ReadAllBytesAsync(configFileLocation);
-                    }
-
                     logger.LogInformation("Loaded config file {Path}", configFileLocation);
+                }
+                catch (JsonException ex){
+                    logger.LogDebug($"Error parsing valid JSON: {ex.Message}");
+                    contents = await File.ReadAllBytesAsync(configFileLocation);
+                    jsonError = ex;
                 }
                 catch (Exception ex)
                 {
@@ -183,29 +210,6 @@ namespace OracleKeyManagement
                 {
                     logger.LogWarning("Empty config file {Path}", configFileLocation);
                     contents = Encoding.UTF8.GetBytes("{}");
-                }
-
-                // Check if the content is plain JSON
-                Dictionary<string, string>? parsedConfig = null;
-                Exception? jsonError = null;
-                bool decryptionError = false;
-
-                try
-                {
-                    string configData = Encoding.UTF8.GetString(contents);
-                    parsedConfig = JsonSerializer.Deserialize<Dictionary<string, string>>(configData);
-                    logger.LogDebug("Valid JSON parsed successfully.");
-                    if (parsedConfig != null)
-                    {
-                        config = parsedConfig;
-                        await SaveConfigAsync(config);
-                        lastSavedConfigHash = ComputeMD5Hash(SerializeConfig(config));
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    jsonError = ex;
                 }
 
                 // If parsing as JSON failed, try decryption
@@ -340,11 +344,15 @@ namespace OracleKeyManagement
             catch (Exception ex)
             {
                 logger.LogError("Error saving config: {Message}", ex.Message);
+                throw;
             }
         }
 
         public async Task<string> DecryptConfigAsync(bool autosave = true)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             byte[] ciphertext;
             string plaintext = "";
 
@@ -403,6 +411,9 @@ namespace OracleKeyManagement
 
         public async Task<bool> ChangeKeyAsync(string newKeyId, string? newKeyVersionId, OciSessionConfig? newOciSessionConfig)
         {
+            if (!IsInitialized){
+                InitializeClient().Wait();
+            }
             logger.LogInformation("Changing key config");
             var oldKeyId = KeyId;
             var oldKeyVersionId = KeyVersionId;
