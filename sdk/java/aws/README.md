@@ -3,7 +3,8 @@
 Protect Secrets Manager connection details with AWS KMS
 
 Keeper Secrets Manager integrates with AWS KMS in order to provide protection for Keeper Secrets Manager configuration files. With this integration, you can protect connection details on your machine while taking advantage of Keeper's zero-knowledge encryption of all your secret credentials.
-Features
+
+# Features
 
 * Encrypt and Decrypt your Keeper Secrets Manager configuration files with AWS KMS (Symmetric/Asymmetric Key) 
 * Protect against unauthorized access to your Secrets Manager connections
@@ -17,8 +18,6 @@ Features
 
 # Download and Installation
 **Install With Gradle or Maven**
-	
-	
  <details>
   <summary>Gradle</summary>
   
@@ -126,9 +125,9 @@ dependencies {
    </details> 
   
   
-# Configure AWS Connection **
+# Configure AWS Connection
 
-** Initializes AwsKeyValueStorage  **
+**Initializes AwsKeyValueStorage**
 
 Configuration variables can be provided as 
 
@@ -141,7 +140,7 @@ Configuration variables can be provided as
     
  Ensure that you have valid AWS credentials. You can configure AWS credentials in the following ways:
  
-  1 : If you would like to specify the connection details, the two configuration files located at `~/.aws/config` and ~/.aws/credentials can be manually edited.
+  1 : If you would like to specify the connection details, the two configuration files located at `~/.aws/config` and `~/.aws/credentials` can be manually edited.
 
 See the AWS documentation for more information on setting up an AWS session: https://docs.aws.amazon.com/cli/latest/reference/configure/
 
@@ -162,9 +161,7 @@ You will need to generate access key ID and secret access key. For more informat
     AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
 ```
 
-
-
-# Add AWS KMS Storage to Your Code**
+# Add AWS KMS Storage to Your Code
 
 Now that the AWS connection has been configured, you need to tell the Secrets Manager SDK to utilize the KMS as storage.
 
@@ -173,36 +170,50 @@ To do this, use AwsKeyValueStorage as your Secrets Manager storage in the Secret
 The storage will require an AWS Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by AWS KMS. Below is the sample Test class
 
 ```
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import com.keepersecurity.secretmanager.aws.kms.AwsKeyValueStorage;
 import com.keepersecurity.secretmanager.aws.kms.AwsSessionConfig;
-import software.amazon.awssdk.regions.Region;
 import com.keepersecurity.secretsManager.core.InMemoryStorage;
 import com.keepersecurity.secretsManager.core.SecretsManager;
-import com.keepersecurity.secretsManager.core.SecretsManagerOptions;		
+import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
+import static com.keepersecurity.secretsManager.core.SecretsManager.initializeStorage;
+
+import software.amazon.awssdk.regions.Region;
+
 import java.security.Security;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
-		class Test{
-		   public static void main(String args[]){
-		  			String keyId = "<Key ID>";
-				    String awsAccessKeyId = "<AWS Access ID>";
-				    String awsSecretAccessKey = "<AWS Secret>";
-				    String oneTimeToken = "[One Time Token]";
-				    Region region = Region.<cloud-region>;
-				    String profile = null OR "DEFAULT";
-				    String configFileLocation = "client_config_test.json";
-				try{
-		    			//set AWS configuration	
-				    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
-				    //Get Storage 
-			  		AwsKeyValueStorage awskvstorage =  new AwsKeyValueStorage(keyId, configFileLocation, profile, sessionConfig);
-				 	initializeStorage(awskvstorage, oneTimeToken);
-			       SecretsManagerOptions options = new SecretsManagerOptions(awskvstorage);
-			    	 	//getSecrets(OPTIONS);
-				}catch (Exception e) {
-		  			  System.out.println(e.getMessage());
-		 		}
-	 	  }
-	 	}
+public class Test {
+	 public static void main(String args[]){
+		String keyId = "<Key_ID>";
+		String updatedKeyId = "Updated_Key_Id";
+		String awsAccessKeyId = "<AWS_AccessID>";
+		String awsSecretAccessKey = "<AWS_Secret>";
+		String oneTimeToken = "[One_Time_Token]";
+		Region region = Region.<cloud_region>;
+		String profile = null;  //Proflie name "DEFAULT" 
+		String configFileLocation = "client_config_test.json";
+		try{
+	 	    //set AWS configuration	
+		    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
+		   //Get Storage 
+		   AwsKeyValueStorage awskvstorage =  new AwsKeyValueStorage(keyId, configFileLocation, profile, sessionConfig);
+		   initializeStorage(awskvstorage, oneTimeToken);
+		   SecretsManagerOptions options = new SecretsManagerOptions(awskvstorage);
+		   boolean isChanged = awskvstorage.changeKey(updatedKeyId);
+		   System.out.println("Key is Changed " + isChanged);
+ 
+		   String plaintext = awskvstorage.decryptConfig(false);
+		   System.out.println("Printing text: "+plaintext);
+		       
+		       // Set true, if you want to save ksm config in plaintext
+		       // String decryptConfig = awskvstorage.decryptConfig(true);
+		       // System.out.println("DecryptConfig text: "+decryptConfig);
+		    	 	//getSecrets(OPTIONS);
+			}catch (Exception e) {
+				  System.out.println(e.getMessage());
+			}
+	 }
+}
 			
 ```
