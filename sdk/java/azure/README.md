@@ -168,40 +168,43 @@ To do this, use AzureKeyValueStorage as your Secrets Manager storage in the Secr
 The storage will require an Azure Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by Azure Key Vault.
 
 ```
-import java.security.Security;
-import java.util.List;
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
+import java.security.Security;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import static com.keepersecurity.secretsManager.core.SecretsManager.initializeStorage;
 import com.keepersecurity.secretmanager.azurekv.AzureKeyValueStorage;
 import com.keepersecurity.secretmanager.azurekv.AzureSessionConfig;
-import com.keepersecurity.secretsManager.core.KeeperRecord;
-import com.keepersecurity.secretsManager.core.KeeperRecordData;
 import com.keepersecurity.secretsManager.core.KeeperSecrets;
 import com.keepersecurity.secretsManager.core.SecretsManager;
 import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
-
-public class Test {
+public class Library {
 	
 	public static void main(String args[]) throws Exception {
-		String oneTimeToken = "[Keeper Ont time token]";
-		
-		String keyId = "<Azure Key Vault key id>;
-		String configFileLocation="<KMS config json file path>";
-		
-		//Azure key vault config
-		String azTenantId = "<Azure tenant id>";
-		String azClientId= "<Azure Client id>";
-		String azClientSecret ="<Azure Client Secret>";
-		String keyVaultUrl="<Azure Key vault URL>";
-		
+		String oneTimeToken = "[One Time Token]";
+		String keyId = "https://<vault-name>.vault.azure.net/keys/<keyname>/<keyversion>";
+		String configFileLocation="client_config_test.json";
+		String azTenantId = "<tenant-id>";
+		String azClientId = "<client-id>";
+		String azClientSecret = "<client-secret>";
+		String keyVaultUrl = "https://<vault-name>.vault.azure.net/";
+		String updatedKeyID = "https://<vault-name>.vault.azure.net/keys/<keyname>/<keyversion>";
 		Security.addProvider(new BouncyCastleFipsProvider()); 
 		AzureSessionConfig azConfig= new AzureSessionConfig(azTenantId, azClientId, azClientSecret, keyVaultUrl);
 		AzureKeyValueStorage azkvstorage =  AzureKeyValueStorage.getInternalStorage(keyId, configFileLocation, azConfig);
-		
 		initializeStorage(azkvstorage, oneTimeToken);
         SecretsManagerOptions options = new SecretsManagerOptions(azkvstorage);
-        getSecrets(options);
+        KeeperSecrets secrets = SecretsManager.getSecrets(options);
+		System.out.println("Printing storage: "+azkvstorage.toString());
+		
+		String plaintext = azkvstorage.decryptConfig(false);
+		System.out.println("Decrypt config: "+plaintext);
+		String decryptedConfig = azkvstorage.decryptConfig(true);
+		System.out.println("Decrypt config: "+decryptedConfig);
+		
+		boolean isChanged = azkvstorage.changeKey(updatedKeyID);	
+		System.out.println("Key is changed: "+isChanged);
+		
+//        getSecrets(options);
     }
-			
+}
 ```
