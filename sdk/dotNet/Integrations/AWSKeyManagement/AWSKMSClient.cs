@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using Amazon;
 using Amazon.KeyManagementService;
@@ -9,7 +11,7 @@ public class AwsKmsClient
 {
     private readonly AmazonKeyManagementServiceClient kmsClient;
 
-    public AwsKmsClient(AWSSessionConfig awsSessionConfig = null, ILogger logger = null)
+    public AwsKmsClient(AWSSessionConfig? awsSessionConfig = null, ILogger? logger = null)
     {
         logger = GetLogger(logger);
         if (awsSessionConfig == null)
