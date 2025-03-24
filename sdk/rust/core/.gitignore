@@ -1,0 +1,8 @@
+target/
+client-config.json
+.vscode/
+*.lo
+src/dummy1/dummy2/test.json
+Cargo.lock
+test.json
+.qodo

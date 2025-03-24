@@ -1,0 +1,184 @@
+name: test
+
+on:
+  push:
+    branches-ignore:
+      - "main"
+  pull_request:
+    branches: 
+      - "main"
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+      contents: write  # To push a branch 
+      pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # - name: Fix permissions
+    #   run: chmod -R 777 ./build/
+
+    # Add a conditional check to skip push jobs if there's an open PR
+    - name: Check for open pull request
+      if: github.event_name == 'push'
+      run: |
+        PR_EXISTS=$(gh pr list --head "$GITHUB_REF_NAME" --json number --jq '.[].number')
+        if [ -n "$PR_EXISTS" ]; then
+          echo "Skipping push run because a PR is open for this branch."
+          exit 0
+        fi
+      env:
+        GITHUB_REF_NAME: "${{ github.ref_name }}"
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Build
+      run: cargo build --verbose
+
+    - name: Run tests and capture output
+      id: run-tests
+      run: |
+        echo "Running tests..."
+        
+        # Array to hold log files
+        log_files=("test-results-1.log" "test-results-2.log")
+
+        # Run tests and save output to file
+        cargo test --bin keeper_secrets_manager_core --verbose --no-fail-fast 2>&1 | tee tee "${log_files[0]}"
+        exit_code1=${PIPESTATUS[0]}  # Capture the exit code of the first command
+
+        # Run specific features and ignored tests
+        cargo test --bin keeper_secrets_manager_core --verbose --no-fail-fast --features sequential_tests -- --ignored --test-threads=1 2>&1 | tee tee "${log_files[1]}"
+        exit_code2=${PIPESTATUS[0]} 
+    
+        # Initialize counters
+        total_tests=0
+        passed_tests=0
+        failed_tests=0
+        ignored_tests=0
+        filtered_tests=0
+        failed_test_names=()  # Array to store failed test names
+    
+        # Loop through each log file and capture the test summary lines
+        for log_file in "${log_files[@]}"; do
+          while IFS= read -r line; do
+            # Match lines that indicate the total number of tests running
+            if [[ $line =~ "running" ]]; then
+              # Extract total tests from the line
+              num_tests=$(echo "$line" | grep -oP '(?<=running )\d+ tests' | awk '{print $1}')
+              total_tests=$((total_tests + num_tests))
+
+            # Match lines with test result summaries
+            elif [[ $line =~ "test result:" ]]; then
+              # Extract passed, failed, and ignored counts using specific patterns
+              num_passed=$(echo "$line" | grep -oP '\d+ passed;' | grep -oP '\d+')
+              num_failed=$(echo "$line" | grep -oP '\d+ failed;' | grep -oP '\d+')
+              num_ignored=$(echo "$line" | grep -oP '(?<=ignored; )\d+')
+              if [[ "$log_file" == "${log_files[0]}" ]]; then
+                  num_filtered_out=$(echo "$line" | grep -oP '\d+ filtered out;' | grep -oP '\d+')
+              fi
+
+              # Accumulate the counts
+              passed_tests=$((passed_tests + num_passed))
+              failed_tests=$((failed_tests + num_failed))
+              ignored_tests=$((ignored_tests + num_ignored))
+              filtered_tests=$((filtered_tests + num_filtered_out))
+            fi
+            
+            # Match lines that indicate a failed test
+            if [[ $line =~ "FAILED" && $line =~ "test" && $line =~ "..." ]]; then
+              # Extract the test name that failed (before the "... FAILED")
+              failed_test_name=$(echo "$line" | awk '{print $2}' | sed 's/\.\.\.//')  # Remove the "...", if present
+              failed_test_names+=("$failed_test_name")  # Add to the array
+            fi
+          done < "$log_file"
+        done
+    
+        # Ensure all counts are integers and not empty (default to 0 if empty)
+        passed_tests=${passed_tests:-0}
+        failed_tests=${failed_tests:-0}
+        ignored_tests=${ignored_tests:-0}
+        filtered_tests=${filtered_tests:-0}
+        total_tests=${total_tests-filtered_tests:-0}
+    
+        # Debugging: Show final counts before creating the comment
+        echo "Total tests: $total_tests"
+        echo "Passed tests: $passed_tests"
+        echo "Failed tests: $failed_tests"
+        echo "Ignored tests: $ignored_tests"
+        echo "Filtered tests: $filtered_tests"
+        echo "Failed test names: ${failed_test_names[@]}"
+    
+        # Save values to environment file for later steps
+        echo "total_tests=$total_tests" >> $GITHUB_ENV
+        echo "passed_tests=$passed_tests" >> $GITHUB_ENV
+        echo "failed_tests=$failed_tests" >> $GITHUB_ENV
+        echo "ignored_tests=$ignored_tests" >> $GITHUB_ENV
+        echo "filtered_tests=$filtered_tests" >> $GITHUB_ENV
+        echo "failed_test_names=$(IFS=';;;'; echo "${failed_test_names[*]}")" >> $GITHUB_ENV  # Join with ;;; separator
+        # Combine exit codes using logical OR
+        if [ $exit_code1 -ne 0 ] || [ $exit_code2 -ne 0 ]; then
+            exit_code=1  # If either command failed, set exit code to 1
+        else
+            exit_code=0  # If both succeeded, set exit code to 0
+        fi
+                
+        echo "exit_code=$exit_code" >> $GITHUB_ENV
+    
+        # Exit with the test status
+        exit $exit_code
+    
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'  # Ensure this runs only for PR events
+      run: |
+        # Create a comment on the PR with the test results
+        pr_number=$(echo "${{ github.event.pull_request.number }}")
+        
+        # Reconstruct the array from the ;;; separated string
+        IFS=';;;'
+        read -r -a failed_test_names <<< "$failed_test_names"  # Split into array
+    
+        # Create the comment with proper Markdown formatting
+        comment=$(cat <<EOF
+        ## Test Results
+        
+        - **Total tests:** $total_tests
+        - **Passed tests:** $passed_tests
+        - **Failed tests:** $failed_tests
+        - **Ignored tests:** $ignored_tests
+        - **Filtered tests:** $filtered_tests
+        
+        EOF
+            )
+        
+        # Append the list of failed tests, if any
+        if [[ ${#failed_test_names[@]} -gt 0 ]]; then
+          comment+=$'\n### Failed Tests:\n'
+          for test_name in "${failed_test_names[@]}"; do
+            comment+="- $test_name"$'\n'
+          done
+
+          # Add a prompt to check and fix the code
+          comment+=$'\n🚨 **Some tests have failed!** Please check and fix the code.'
+        else
+          # If all tests passed, add a success message
+          comment+=$'\n🎉 **All tests passed successfully!** Great job!'
+        fi
+    
+        # Post the comment using GitHub CLI
+        echo "$comment" | gh pr comment "$pr_number" --body-file=-
+        
+        # If any test failed, exit with a non-zero status
+        if [ "$failed_tests" -gt 0 ]; then
+          echo "Some tests have failed. Failing the job..."
+          exit 1
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
