@@ -19,7 +19,7 @@ Keeper Secrets Manager integrates with GCP KMS in order to provide protection fo
 
 1. Install KSM Storage Module
 
-The Secrets Manager GCP KSM module can be installed using npm
+The Secrets Manager GCP KSM module can be installed using the NuGet package manager.
 
 > `dotnet add package Keeper.SecretsManager.GCPKeyManagement`
 
