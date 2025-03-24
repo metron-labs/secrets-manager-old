@@ -119,7 +119,7 @@ We can decrypt the configuration file and revert it back to plaintext and save i
 ```
 
 ## Logging
-We support logging for the Oracle Key Vault integration. Supported log levels are as follows
+We support logging for the Google Key Vault integration. Supported log levels are as follows
 * Trace
 * Debug
 * Information
