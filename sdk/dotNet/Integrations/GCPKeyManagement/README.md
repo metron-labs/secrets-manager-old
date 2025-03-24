@@ -136,7 +136,7 @@ below is how we can use a logger of desired level, If none are selected then log
             builder.AddConsole();
         });
     var logger = loggerFactory.CreateLogger<GCPKeyValueStorage>();
-    GCPKeyValueStorage azure_storage = new GCPKeyValueStorage(keyId, path, azure_session_config, logger);
+    GCPKeyValueStorage gcp_storage = new GCPKeyValueStorage(keyId, path, gcpSessionConfig, logger);
 ```
 You're ready to use the KSM integration 👍
 Using the GCP KMS Integration
