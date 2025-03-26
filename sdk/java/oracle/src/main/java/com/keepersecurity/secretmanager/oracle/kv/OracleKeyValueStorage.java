@@ -17,7 +17,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.GCMParameterSpec;
@@ -37,22 +36,21 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		private String lastSavedConfigHash, updateConfigHash;
 		private String configFileLocation;
 		private String keyId;
+		private String keyVersionId;
 		private Map<String, Object> configMap;
 
 		private OracleKeyVaultConnector ociClient;
 
-		public OracleKeyValueStorage(String keyId, String configFileLocation, String profile, OracleSessionConfig sessionConfig)
+		public OracleKeyValueStorage(String configFileLocation, String profile, OracleSessionConfig sessionConfig)
 				throws Exception {
 			this.configFileLocation = configFileLocation != null ? configFileLocation
 					: System.getenv("KSM_CONFIG_FILE") != null ? System.getenv("KSM_CONFIG_FILE")
 							: this.defaultConfigFileLocation;
-			this.keyId = keyId != null ? keyId : System.getenv("AWS_KMS_KEY_ID");
+			this.keyId = sessionConfig.getKeyId();
+			this.keyVersionId = sessionConfig.getKeyVersionId();
 			this.configMap = new HashMap<String, Object>();
-			
-			
-			 ociClient = new OracleKeyVaultConnector(sessionConfig);
-			
-			logger.info("AWS KMS Client initiated.");
+			ociClient = new OracleKeyVaultConnector(sessionConfig, profile);
+			logger.info("Oracle KMS Client initiated.");
 			loadConfig();
 		}
 
@@ -64,9 +62,9 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		 * @return
 		 * @throws Exception
 		 */
-		public static OracleKeyValueStorage getInternalStorage(String keyId, String configFileLocation, String profile,
+		public static OracleKeyValueStorage getInternalStorage(String keyId, String keyVersion, String configFileLocation, String profile,
 				OracleSessionConfig sessionConfig) throws Exception {
-			OracleKeyValueStorage storage = new OracleKeyValueStorage(keyId, configFileLocation, profile, sessionConfig);
+			OracleKeyValueStorage storage = new OracleKeyValueStorage(configFileLocation, profile, sessionConfig);
 			return storage;
 		}
 		
@@ -75,22 +73,24 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		 * Change key method used to encrypt config with new key
 		 * @param newKeyId
 		 */
-		public boolean changeKey(String newKeyId) {
+		public boolean changeKey(String newKeyId, String newKeyVersion) {
 			logger.info("Change Key initiated");
 			String configJson="";
 			String oldKey = this.keyId;
-			Map<String, Object> oldconfigMap = this.configMap;
+			String oldKeyVersion = this.keyVersionId;
+			// Map<String, Object> oldconfigMap = this.configMap;
 			OracleKeyVaultConnector oldOciClient = this.ociClient;
-			
 			try {
 				this.keyId = newKeyId;
+				this.keyVersionId = newKeyVersion;
 				save(configJson, configMap);
 				logger.info("Encrypted using new KeyId");
 				return true;
 			}catch(Exception e) {
 				this.keyId = oldKey;
+				this.keyVersionId = oldKeyVersion;
 				this.ociClient = oldOciClient;
-				logger.error("Exception: "+e.getMessage());
+				logger.error("Exception raised while changing key: "+e.getMessage());
 			}
 			return false;
 		}
@@ -101,26 +101,24 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		 */
 		private void loadConfig() throws Exception {
 			File file = new File(configFileLocation);
-	        if (file.exists()) {
-	        	if (file.length() == 0) {
-	        		logger.info("File is empty");
-	        		return; 
-	        	}
+			// File file = new File(configFileLocation);
+			if (file.exists() && file.length() == 0) {
+				logger.info("File is empty");
+				return;
+			}
 	        	
-	    		if (!JsonUtil.isValidJsonFile(configFileLocation)) {
-					logger.debug("KSM config file is already encrypted.");
-					String decryptedContent = decryptBuffer(readEncryptedJsonFile());
-					lastSavedConfigHash = calculateMd5(decryptedContent);
-					configMap = JsonUtil.convertToMap(decryptedContent);
-				} else {
-					logger.debug("KSM Config file is plain json.");
-					String configJson = Files.readString(Paths.get(configFileLocation));
-					lastSavedConfigHash = calculateMd5(configJson);
-					configMap = JsonUtil.convertToMap(configJson);
-					saveConfig(configMap);
-				}
-	        }
-	        
+			if (!JsonUtil.isValidJsonFile(configFileLocation)) {
+				logger.debug("KSM config file is already encrypted.");
+				String decryptedContent = decryptBuffer(readEncryptedJsonFile());
+				lastSavedConfigHash = calculateMd5(decryptedContent);
+				configMap = JsonUtil.convertToMap(decryptedContent);
+			} else {
+				logger.debug("KSM Config file is plain json.");
+				String configJson = Files.readString(Paths.get(configFileLocation));
+				lastSavedConfigHash = calculateMd5(configJson);
+				configMap = JsonUtil.convertToMap(configJson);
+				saveConfig(configMap);
+			}
 		}
 		
 
@@ -203,7 +201,7 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 
 		private byte[] encryptBuffer(String message) throws Exception {
 			if (ociClient.isSymmetricKey(keyId)) {
-				byte[] encrypted = ociClient.encryptRSA(message.getBytes());
+				byte[] encrypted = ociClient.encryptAES(message.getBytes());
 				ByteArrayOutputStream blob = new ByteArrayOutputStream();
 				writeLengthPrefixed(blob, encrypted);
 				return blob.toByteArray();
@@ -236,7 +234,11 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 			if (ociClient.isSymmetricKey(keyId)) {
 				ByteArrayInputStream blobInputStream = new ByteArrayInputStream(encryptedData);
 				byte[] encrypted = readLengthPrefixed(blobInputStream);
-				byte[] decryptedMessage = ociClient.decrypt(encrypted);
+				byte[] decryptedMessage = ociClient.decryptAES(encrypted);
+				String decryptedString = new String(decryptedMessage, StandardCharsets.UTF_8).trim();
+				if (!JsonUtil.isValidJson(decryptedString)) {
+					throw new IllegalArgumentException("Decrypted content is not valid JSON.");
+				}
 				return new String(decryptedMessage, StandardCharsets.UTF_8);
 
 			} else {
@@ -253,7 +255,7 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 				byte[] ciphertext = readLengthPrefixed(blobInputStream);
 
 				// Decrypt the AES key using RSA (unwrap the key)
-				byte[] key = ociClient.decrypt(encryptedKey);
+				byte[] key = ociClient.decryptRSA(encryptedKey);
 				Cipher cipher = getGCMCipher(Cipher.DECRYPT_MODE, key, nonce);
 
 				byte[] decryptedMessage = cipher.doFinal(ciphertext);
@@ -268,7 +270,7 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		 * @throws Exception
 		 */
 		public String decryptConfig(boolean autosave) throws Exception {
-			String decryptedContent=null;
+			String decryptedContent = null;
 			if (!JsonUtil.isValidJsonFile(configFileLocation)) {
 				 decryptedContent = decryptBuffer(readEncryptedJsonFile());
 				 if(autosave) {

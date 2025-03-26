@@ -1,50 +1,87 @@
 package com.keepersecurity.secretmanager.oracle.kv;
-
+import com.oracle.bmc.Region;
 public class OracleSessionConfig {
 
-	private String kmsEndpoint;
+	private String cryptoEndpoint;
 	private String vaultId;
 	private String keyId;
 	private String keyVersionId;
 	private String configPath ;
-	
-	public OracleSessionConfig(String configPath, String kmsEndpoint, String vaultId, String keyId, String keyVersionId) {
+	private String managementEndpoint;
+	private Region region;
+	/**
+	 * @param configPath
+	 * @param cryptoEndpoint
+	 * @param managementEndpoint
+	 * @param vaultId
+	 * @param keyId
+	 * @param keyVersionId
+	 * @param region
+	 */
+	public OracleSessionConfig(String configPath, String cryptoEndpoint, String managementEndpoint, String vaultId, String keyId, String keyVersionId, Region region) {
 		super();
 		this.configPath = configPath;
-		this.kmsEndpoint = kmsEndpoint;
+		this.cryptoEndpoint = cryptoEndpoint;
 		this.vaultId = vaultId;
 		this.keyId = keyId;
 		this.keyVersionId = keyVersionId;
+		this.managementEndpoint = managementEndpoint;
+		this.region = region;
 	}
 	
 	public String getConfigPath() {
 		return this.configPath;
 	}
+
 	public void setConfigPath(String configPath) {
 		this.configPath = configPath;
 	}
-	public String getKmsEndpoint() {
-		return kmsEndpoint;
+
+	public String getCryptoEndpoint() {
+		return cryptoEndpoint;
 	}
-	public void setKmsEndpoint(String kmsEndpoint) {
-		this.kmsEndpoint = kmsEndpoint;
+
+	public void setCryptoEndpoint(String cryptoEndpoint) {
+		this.cryptoEndpoint = cryptoEndpoint;
 	}
+
 	public String getVaultId() {
 		return vaultId;
 	}
+
 	public void setVaultId(String vaultId) {
 		this.vaultId = vaultId;
 	}
+
 	public String getKeyId() {
 		return keyId;
 	}
+
 	public void setKeyId(String keyId) {
 		this.keyId = keyId;
 	}
+
 	public String getKeyVersionId() {
 		return keyVersionId;
 	}
+
 	public void setKeyVersionId(String keyVersionId) {
 		this.keyVersionId = keyVersionId;
+	}
+	
+	public void setManagementEndpoint(String managementEndpoint) {
+		this.managementEndpoint = managementEndpoint;
+	}
+	
+	public String getManagementEndpoint() {
+		return managementEndpoint;
+	}
+
+	public Region getRegion() {
+		return region;
+	}
+
+	public void setRegion(Region region) {
+		this.region = region;
 	}
 }

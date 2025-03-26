@@ -22,30 +22,13 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.18.2")
 	implementation("com.google.code.gson:gson:2.12.1")
-	//implementation("bc-fips:bc-fips:1.0.2")
-	//implementation("bcpkix-fips:bcpkix-fips:1.0.3")
-	
-	//implementation("com.oracle.oci.sdk:oci-java-sdk-shaded-full:3.0.0")
-	//implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey:3.55.1")
-	
+	implementation("org.slf4j:slf4j-api:1.7.32"){
+        exclude("org.slf4j:slf4j-log4j12")
+    }
 	implementation("com.oracle.oci.sdk:oci-java-sdk-keymanagement:3.60.0")
 	implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey:3.60.0") // or the latest version
-	
-	
 	implementation("com.oracle.oci.sdk:oci-java-sdk-common:3.60.0")
-
-	
-	 	
-    // Use JUnit Jupiter for testing.
-    testImplementation(libs.junit.jupiter)
-
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-    // This dependency is exported to consumers, that is to say found on their compile classpath.
-    //api(libs.commons.math3)
-
-    // This dependency is used internally, and not exposed to consumers on their own compile classpath.
-    implementation(libs.guava)
+	implementation("org.bouncycastle:bc-fips:1.0.2.4")
 
 }
 
