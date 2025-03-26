@@ -18,13 +18,10 @@ public class AwsSessionConfig {
 
 	private String awsAccessKeyId;
     private String awsSecretAccessKey;
-    private Region regionName;
 	
-    public AwsSessionConfig(String awsAccessKeyId, String awsSecretAccessKey, Region regionName) {
+    public AwsSessionConfig(String awsAccessKeyId, String awsSecretAccessKey) {
         this.awsAccessKeyId = awsAccessKeyId;
         this.awsSecretAccessKey = awsSecretAccessKey;
-        this.regionName = regionName;
-        
     }
 
 	public String getAwsAccessKeyId() {
@@ -42,14 +39,5 @@ public class AwsSessionConfig {
 	public void setAwsSecretAccessKey(String awsSecretAccessKey) {
 		this.awsSecretAccessKey = awsSecretAccessKey;
 	}
-
-	public Region getRegionName() {
-		return regionName;
-	}
-
-	public void setRegionName(Region regionName) {
-		this.regionName = regionName;
-	}
-
    
 }

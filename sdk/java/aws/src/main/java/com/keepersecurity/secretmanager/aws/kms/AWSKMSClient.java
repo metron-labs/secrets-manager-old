@@ -35,17 +35,17 @@ public class AWSKMSClient {
 
 	private KmsClient kmsClient;
 
-	public AWSKMSClient(AwsSessionConfig sessionConfig) {
+	public AWSKMSClient(AwsSessionConfig sessionConfig, Region region) {
 		AwsBasicCredentials awsCreds = AwsBasicCredentials.create(sessionConfig.getAwsAccessKeyId(),
 				sessionConfig.getAwsSecretAccessKey());
 		kmsClient = KmsClient.builder().credentialsProvider(StaticCredentialsProvider.create(awsCreds))
-				.region(sessionConfig.getRegionName()).build();
+				.region(region).build();
 	}
 	
-	public AWSKMSClient(String profile) {
+	public AWSKMSClient(String profile, Region region) {
 		ProfileCredentialsProvider awsCreds = ProfileCredentialsProvider.create(profile);
 		kmsClient = KmsClient.builder()
-                .region(Region.AP_SOUTH_1)  // Specify the region
+                .region(region)  // Specify the region
                 .credentialsProvider(awsCreds)  // Use default AWS credentials provider
                 .build();
     }

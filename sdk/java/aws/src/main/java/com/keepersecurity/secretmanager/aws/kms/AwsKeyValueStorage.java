@@ -39,6 +39,7 @@ import static com.keepersecurity.secretsManager.core.SecretsManager.initializeSt
 
 
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.regions.Region;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -65,7 +66,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 
 	private AWSKMSClient kmsClient;
 
-	public AwsKeyValueStorage(String keyId, String configFileLocation, String profile, AwsSessionConfig sessionConfig)
+	public AwsKeyValueStorage(String keyId, String configFileLocation, String profile, AwsSessionConfig sessionConfig, Region region)
 			throws Exception {
 		this.configFileLocation = configFileLocation != null ? configFileLocation
 				: System.getenv("KSM_CONFIG_FILE") != null ? System.getenv("KSM_CONFIG_FILE")
@@ -73,8 +74,8 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 		this.keyId = keyId != null ? keyId : System.getenv("AWS_KMS_KEY_ID");
 		this.configMap = new HashMap<String, Object>();
 		
-		if(profile!=null || sessionConfig == null) kmsClient = new AWSKMSClient(profile);
-		else kmsClient = new AWSKMSClient(sessionConfig);
+		if(profile!=null || sessionConfig == null) kmsClient = new AWSKMSClient(profile, region);
+		else kmsClient = new AWSKMSClient(sessionConfig, region);
 		
 		logger.info("AWS KMS Client initiated.");
 		loadConfig();
@@ -89,8 +90,8 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	 * @throws Exception
 	 */
 	public static AwsKeyValueStorage getInternalStorage(String keyId, String configFileLocation, String profile,
-			AwsSessionConfig sessionConfig) throws Exception {
-		AwsKeyValueStorage storage = new AwsKeyValueStorage(keyId, configFileLocation, profile, sessionConfig);
+			AwsSessionConfig sessionConfig, Region region) throws Exception {
+		AwsKeyValueStorage storage = new AwsKeyValueStorage(keyId, configFileLocation, profile, sessionConfig, region);
 		return storage;
 	}
 	

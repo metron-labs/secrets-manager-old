@@ -153,13 +153,11 @@ You will need to generate access key ID and secret access key. For more informat
 ```
    import com.keepersecurity.secretmanager.aws.kms.AwsKeyValueStorage;
    import com.keepersecurity.secretmanager.aws.kms.AwsSessionConfig;
-   import software.amazon.awssdk.regions.Region;
     
      String awsAccessKeyId = "<AWS Access Id>";
 	 String awsSecretAccessKey = "<AWS Access Secret Key>";
-	 Region region = <Region>;
 	 
-    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
+    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey);
 ```
 
 
@@ -189,13 +187,13 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 				    String awsSecretAccessKey = "<AWS Secret>";
 				    String oneTimeToken = "[One Time Token]";
 				    Region region = Region.<cloud-region>;
-				    String profile = null OR "DEFAULT";
+				    String profile = null OR "DEFAULT";     //set profile (ex. DEFUALT/UAT/PROD) if ~/.aws/config is et
 				    String configFileLocation = "client_config_test.json";
 				try{
-		    			//set AWS configuration	
-				    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey , region);
+		    			//set AWS configuration, It can be null if profile is set for aws credentials
+				    AwsSessionConfig sessionConfig = new AwsSessionConfig(awsAccessKeyId, awsSecretAccessKey);
 				    //Get Storage 
-			  		AwsKeyValueStorage awskvstorage =  new AwsKeyValueStorage(keyId, configFileLocation, profile, sessionConfig);
+			  		AwsKeyValueStorage awskvstorage =  new AwsKeyValueStorage(keyId, configFileLocation, profile, sessionConfig, region);
 				 	initializeStorage(awskvstorage, oneTimeToken);
 			       SecretsManagerOptions options = new SecretsManagerOptions(awskvstorage);
 			    	 	//getSecrets(OPTIONS);
