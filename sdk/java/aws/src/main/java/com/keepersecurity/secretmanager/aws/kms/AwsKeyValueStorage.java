@@ -24,18 +24,10 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.keepersecurity.secretsManager.core.KeeperRecord;
-import com.keepersecurity.secretsManager.core.KeeperSecrets;
 import com.keepersecurity.secretsManager.core.KeyValueStorage;
-import com.keepersecurity.secretsManager.core.LocalConfigStorage;
-import com.keepersecurity.secretsManager.core.SecretsManager;
-import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
-
-import static com.keepersecurity.secretsManager.core.SecretsManager.initializeStorage;
 
 
 import software.amazon.awssdk.core.SdkBytes;
@@ -104,7 +96,6 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 		logger.info("Change Key initiated");
 		String configJson="";
 		String oldKey = this.keyId;
-		Map<String, Object> oldconfigMap = this.configMap;
 		AWSKMSClient oldkmsClient = this.kmsClient;
 		
 		try {

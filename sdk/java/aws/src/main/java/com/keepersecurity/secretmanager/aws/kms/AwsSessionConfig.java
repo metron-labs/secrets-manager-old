@@ -12,7 +12,6 @@ package com.keepersecurity.secretmanager.aws.kms;
 # Contact: sm@keepersecurity.com
 **/
 
-import software.amazon.awssdk.regions.Region;
 
 public class AwsSessionConfig {
 
