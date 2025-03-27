@@ -1,0 +1,31 @@
+name: 📦 Publish .NET Package - Keeper.SecretsManager.AWSKeyManagement
+
+on:
+  workflow_dispatch:  # Allows manual trigger from GitHub UI/API
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest  # Use latest Ubuntu runner
+
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v3
+
+    - name: 🔧 Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0'  # Use .NET 8 (adjust as needed)
+
+    - name: 📦 Restore dependencies
+      run: dotnet restore
+
+    - name: 🏗 Build solution
+      run: dotnet build --configuration Release --no-restore
+
+    - name: 📦 Pack NuGet package
+      run: dotnet pack --configuration Release --output ./nuget_packages
+
+    - name: 🚀 Publish to NuGet.org
+      run: dotnet nuget push ./nuget_packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json  --skip-duplicate
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.NUGET_API_KEY }}
