@@ -26,12 +26,15 @@ Keeper Secrets Manager integrates with **Oracle Key Vault Management Service (OC
 }
 
 dependencies {
-    implementation 'com.keepersecurity.secrets-manager:core:17.0.0+'
-    implementation("org.bouncycastle:bc-fips:1.0.2.4")
-    implementation("com.oracle.oci.sdk:oci-java-sdk-keymanagement:3.60.0")
-    implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey:3.60.0") 
-    implementation("com.oracle.oci.sdk:oci-java-sdk-common:3.60.0")
-    implementation("com.google.code.gson:gson:2.12.1")
+    implementation("com.keepersecurity.secrets-manager:core:17.0.0")
+	implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+	implementation("com.fasterxml.jackson.core:jackson-core:2.18.2")
+	implementation("com.google.code.gson:gson:2.12.1")
+    implementation("org.slf4j:slf4j-simple:2.0.16")
+	implementation("com.oracle.oci.sdk:oci-java-sdk-keymanagement:3.60.0")
+	implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey:3.60.0") // or the latest version
+	implementation("com.oracle.oci.sdk:oci-java-sdk-common:3.60.0")
+	implementation("org.bouncycastle:bc-fips:1.0.2.4")
 }
 ```
 
@@ -39,49 +42,60 @@ dependencies {
   <details> <summary>Maven</summary>
 
  ```
- <dependency>
-  <groupId>com.keepersecurity.secrets-manager</groupId>
-  <artifactId>core</artifactId>
-  <version>[17.0.0,)</version>
-</dependency>
-<dependency>
-    <groupId>org.bouncycastle</groupId>
-    <artifactId>bc-fips</artifactId>
-    <version>1.0.2.4</version>
-</dependency>
-<dependency>
-    <groupId>com.oracle.oci.sdk</groupId>
-    <artifactId>oci-java-sdk-keymanagement</artifactId>
-    <version>3.60.0</version>
-    <scope>compile</scope>
-</dependency>
-<dependency>
-    <groupId>com.oracle.oci.sdk</groupId>
-    <artifactId>oci-java-sdk-common-httpclient-jersey</artifactId>
-    <version>3.60.0</version>
-</dependency>
-<dependency>
-    <groupId>com.oracle.oci.sdk</groupId>
-    <artifactId>oci-java-sdk-common</artifactId>
-    <version>3.60.0</version>
-</dependency>
-<dependency>
-    <groupId>com.google.code.gson</groupId>
-    <artifactId>gson</artifactId>
-    <version>2.12.1</version>
-</dependency>
+<dependencies>
+    <dependency>
+        <groupId>com.keepersecurity.secrets-manager</groupId>
+        <artifactId>core</artifactId>
+        <version>17.0.0</version>
+    </dependency>
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.18.2</version>
+    </dependency>
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>2.18.2</version>
+    </dependency>
+    <dependency>
+        <groupId>com.google.code.gson</groupId>
+        <artifactId>gson</artifactId>
+        <version>2.12.1</version>
+    </dependency>
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>2.0.16</version>
+    </dependency>
+    <dependency>
+        <groupId>com.oracle.oci.sdk</groupId>
+        <artifactId>oci-java-sdk-keymanagement</artifactId>
+        <version>3.60.0</version>
+    </dependency>
+    <dependency>
+        <groupId>com.oracle.oci.sdk</groupId>
+        <artifactId>oci-java-sdk-common-httpclient-jersey</artifactId>
+        <version>3.60.0</version>
+    </dependency>
+    <dependency>
+        <groupId>com.oracle.oci.sdk</groupId>
+        <artifactId>oci-java-sdk-common</artifactId>
+        <version>3.60.0</version>
+    </dependency>
+    <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bc-fips</artifactId>
+        <version>1.0.2.4</version>
+    </dependency>
+</dependencies>
 
 ```
    </details> 
   
-  
-** Configure Oracle Connection **
+**Configure Oracle Connection**
 
-Initilaizes OracleKeyValueStorage
-
-
-        
-Configuration variables can be provided as 
+Initilaizes OracleKeyValueStorage configuration variables can be provided as
 
 ```
     import com.keepersecurity.secretmanager.oracle.kv.OracleSessionConfig;
@@ -94,10 +108,11 @@ Configuration variables can be provided as
     OracleSessionConfig sessionConfig = public OracleSessionConfig(configPath, kmsEndpoint, vaultId, keyId, keyVersionId) 
 ```
 
-An access key using the `OracleSessionConfig` data class and providing `configPath`,`kmsEndpoint` ,`vaultId`, `keyId` and `keyVersionId` variables.
+An access key using the `OracleSessionConfig` data class and providing `configPath`, `kmsEndpoint`, `vaultId`, `keyId` and `keyVersionId` variables.
 
-You will need an ~/.oci/config to use the OCI KMS Integration.
-
+You will need an `~/.oci/config` to use the OCI KMS Integration.
+Refer the (oracle official documentation)[https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdkconfig.htm]
+ for setup. 
 
 **Add Oracle Key Vault Storage to Your Code**
 
@@ -108,20 +123,27 @@ To do this, use OracleKeyValueStorage as your Secrets Manager storage in the Sec
 The storage will require the name of the Secrets Manager configuration file which will be encrypted by Oracle Key Vault.
 
 ```
-		import com.keepersecurity.secretmanager.oracle.kv.OracleSessionConfig;
-		import  com.keepersecurity.secretmanager.oracle.kv.OracleKeyValueStorage;
-		import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
+import com.keepersecurity.secretmanager.oracle.kv.OracleSessionConfig;
+import  com.keepersecurity.secretmanager.oracle.kv.OracleKeyValueStorage;
+import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
 		
-	    String configFileLocation = "<KSM-Config.json>";
-		try{
-		  	// created instance OracleSessionConfig with oracle configuration details mentioned above
-		  	
-	  		OracleKeyValueStorage STORAGE =  OracleKeyValueStorage.getInternalStorage(configFileLocation, sessionConfig);
-			Security.addProvider(BouncyCastleFipsProvider())
-			SecretsManagerOptions OPTIONS = new SecretsManagerOptions(STORAGE);
-	    	 //getSecrets(OPTIONS)
-		}catch (Exception e) {
-  			  System.out.println(e.getMessage());
- 		}
-			
+public class Test {
+	public static void main(String[] args) {
+        try {
+			OracleSessionConfig oracleSessionConfig = new OracleSessionConfig(configPath, cryptoEndpoint, managementEndpoint, vaultId, keyId, keyVersionId, region);
+			OracleKeyValueStorage oracleKeyValueStorage = new OracleKeyValueStorage(configFileLocation, profile, oracleSessionConfig);
+			initializeStorage(oracleKeyValueStorage, oneTimeToken);
+			SecretsManagerOptions options = new SecretsManagerOptions(oracleKeyValueStorage);
+			System.out.println("SecretsManagerOptions: "+options.toString());getSecrets(options);	
+			boolean isChanged = oracleKeyValueStorage.changeKey(symKeyID, symKeyVersion);
+			System.out.println("Key is Changed: "+isChanged);
+			String plaintext = oracleKeyValueStorage.decryptConfig(false);
+			System.out.println("Plaintext: "+plaintext);
+			oracleKeyValueStorage.decryptConfig(true);
+			System.out.println("Config is decrypted");
+		} catch (Exception e) {
+			System.out.println("Exception raised: "+e.getMessage());
+		}
+    }
+}
 ```

@@ -18,13 +18,10 @@ repositories {
 dependencies {
 	
   	implementation("com.keepersecurity.secrets-manager:core:17.0.0")
-	
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.18.2")
 	implementation("com.google.code.gson:gson:2.12.1")
-	implementation("org.slf4j:slf4j-api:1.7.32"){
-        exclude("org.slf4j:slf4j-log4j12")
-    }
+    implementation("org.slf4j:slf4j-simple:2.0.16")
 	implementation("com.oracle.oci.sdk:oci-java-sdk-keymanagement:3.60.0")
 	implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey:3.60.0") // or the latest version
 	implementation("com.oracle.oci.sdk:oci-java-sdk-common:3.60.0")
