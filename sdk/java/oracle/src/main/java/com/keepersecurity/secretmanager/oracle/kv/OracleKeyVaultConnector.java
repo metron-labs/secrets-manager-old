@@ -28,7 +28,17 @@ import com.oracle.bmc.keymanagement.responses.DecryptResponse;
 import com.oracle.bmc.keymanagement.responses.EncryptResponse;
 import com.oracle.bmc.keymanagement.responses.GetKeyResponse;
 
-
+/**
+#  _  __
+# | |/ /___ ___ _ __  ___ _ _ (R)
+# | ' </ -_) -_) '_ \/ -_) '_|
+# |_|\_\___\___| .__/\___|_|
+#              |_|
+#
+# Keeper Secrets Manager
+# Copyright 2025 Keeper Security Inc.
+# Contact: sm@keepersecurity.com
+**/
 
 public class OracleKeyVaultConnector {
 	public OracleSessionConfig sessionConfig;
@@ -38,7 +48,12 @@ public class OracleKeyVaultConnector {
 		this.sessionConfig = sessionconfig;
 		this.profile = profile;
 	}
-	
+
+	/**
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
 	public AuthenticationDetailsProvider getprovider() throws IOException {
 		ConfigFile config = ConfigFileReader.parse(sessionConfig.getConfigPath());
 		Supplier<InputStream> privateKeySupplier = new SimplePrivateKeySupplier(config.get("key_file"));
@@ -47,79 +62,98 @@ public class OracleKeyVaultConnector {
 				.privateKeySupplier(privateKeySupplier).region(sessionConfig.getRegion()).build();
 		return provider;
 	}
-	
-	private KeyShape.Algorithm getKeySpecType(String keyId) throws IOException {
-        AuthenticationDetailsProvider provider = new ConfigFileAuthenticationDetailsProvider(this.profile);
-		KmsManagementClient client = KmsManagementClient.builder().endpoint(sessionConfig.getManagementEndpoint()).build(provider);
-		GetKeyRequest getKeyRequest = GetKeyRequest.builder()
-		.keyId(sessionConfig.getKeyId())
-		.build();
 
-        GetKeyResponse response = client.getKey(getKeyRequest);
+	/**
+	 * 
+	 * @param keyId
+	 * @return
+	 * @throws IOException
+	 */
+	private KeyShape.Algorithm getKeySpecType(String keyId) throws IOException {
+		AuthenticationDetailsProvider provider = new ConfigFileAuthenticationDetailsProvider(this.profile);
+		KmsManagementClient client = KmsManagementClient.builder().endpoint(sessionConfig.getManagementEndpoint())
+				.build(provider);
+		GetKeyRequest getKeyRequest = GetKeyRequest.builder().keyId(sessionConfig.getKeyId()).build();
+
+		GetKeyResponse response = client.getKey(getKeyRequest);
 		return response.getKey().getKeyShape().getAlgorithm();
 	}
-	
-	public boolean isSymmetricKey(String keyId) throws IOException{
+
+	/**
+	 * 
+	 * @param keyId
+	 * @return
+	 * @throws IOException
+	 */
+	public boolean isSymmetricKey(String keyId) throws IOException {
 		if (KeyShape.Algorithm.Aes.equals(getKeySpecType(keyId))) {
 			return true;
 		}
 		return false;
 	}
-	
+
+	/**
+	 * 
+	 * @param message
+	 * @return
+	 * @throws IOException
+	 */
 	public byte[] encryptRSA(byte[] message) throws IOException {
 		ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
 		HttpProvider httpProvider = new JerseyHttpProvider();
-		KmsCryptoClient kmsCryptoClient = KmsCryptoClient.builder().endpoint(sessionConfig.getCryptoEndpoint()).httpProvider(httpProvider)
-			.configuration(clientConfiguration).build(getprovider());
+		KmsCryptoClient kmsCryptoClient = KmsCryptoClient.builder().endpoint(sessionConfig.getCryptoEndpoint())
+				.httpProvider(httpProvider).configuration(clientConfiguration).build(getprovider());
 		String encodedData = Base64.getEncoder().encodeToString(message);
 		EncryptDataDetails encryptDataDetails = EncryptDataDetails.builder()
-				.encryptionAlgorithm(EncryptionAlgorithm.RsaOaepSha256)
-				.keyId(sessionConfig.getKeyId())
-				.keyVersionId(sessionConfig.getKeyVersionId())
-				.plaintext(encodedData)
-				.build();
- 
-		EncryptRequest encryptRequest = EncryptRequest.builder()
-				.encryptDataDetails(encryptDataDetails)
-				.build();
+				.encryptionAlgorithm(EncryptionAlgorithm.RsaOaepSha256).keyId(sessionConfig.getKeyId())
+				.keyVersionId(sessionConfig.getKeyVersionId()).plaintext(encodedData).build();
+
+		EncryptRequest encryptRequest = EncryptRequest.builder().encryptDataDetails(encryptDataDetails).build();
 
 		EncryptResponse encryptResponse = kmsCryptoClient.encrypt(encryptRequest);
 		EncryptedData encryptedData = encryptResponse.getEncryptedData();
 		return encryptedData.getCiphertext().getBytes();
 	}
-	
+
+	/**
+	 * 
+	 * @param message
+	 * @return
+	 * @throws IOException
+	 */
 	public byte[] decryptRSA(byte[] message) throws IOException {
-	ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
-	HttpProvider httpProvider = new JerseyHttpProvider();
-	KmsCryptoClient kmsCryptoClient = KmsCryptoClient.builder().endpoint(sessionConfig.getCryptoEndpoint()).httpProvider(httpProvider)
-			.configuration(clientConfiguration).build(getprovider());
-	
-	DecryptDataDetails decryptDataDetails = DecryptDataDetails.builder().ciphertext(new String(message)).encryptionAlgorithm(DecryptDataDetails.EncryptionAlgorithm.RsaOaepSha256).keyId(sessionConfig.getKeyId()).keyVersionId(sessionConfig.getKeyVersionId()).build();
-	DecryptRequest decryptRequest = DecryptRequest.builder()
-			.decryptDataDetails(decryptDataDetails)
-			.build();
-	DecryptResponse decryptResponse = kmsCryptoClient.decrypt(decryptRequest);
-	DecryptedData decryptedData = decryptResponse.getDecryptedData();
-	return Base64.getDecoder().decode(decryptedData.getPlaintext());
+		ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
+		HttpProvider httpProvider = new JerseyHttpProvider();
+		KmsCryptoClient kmsCryptoClient = KmsCryptoClient.builder().endpoint(sessionConfig.getCryptoEndpoint())
+				.httpProvider(httpProvider).configuration(clientConfiguration).build(getprovider());
+
+		DecryptDataDetails decryptDataDetails = DecryptDataDetails.builder().ciphertext(new String(message))
+				.encryptionAlgorithm(DecryptDataDetails.EncryptionAlgorithm.RsaOaepSha256)
+				.keyId(sessionConfig.getKeyId()).keyVersionId(sessionConfig.getKeyVersionId()).build();
+		DecryptRequest decryptRequest = DecryptRequest.builder().decryptDataDetails(decryptDataDetails).build();
+		DecryptResponse decryptResponse = kmsCryptoClient.decrypt(decryptRequest);
+		DecryptedData decryptedData = decryptResponse.getDecryptedData();
+		return Base64.getDecoder().decode(decryptedData.getPlaintext());
 	}
-	
+
+	/**
+	 * 
+	 * @param message
+	 * @return
+	 * @throws IOException
+	 */
 	public byte[] encryptAES(byte[] message) throws IOException {
 		ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
 		HttpProvider httpProvider = new JerseyHttpProvider();
-		KmsCryptoClient kmsCryptoClient = KmsCryptoClient.builder().endpoint(sessionConfig.getCryptoEndpoint()).httpProvider(httpProvider)
-			.configuration(clientConfiguration).build(getprovider());
+		KmsCryptoClient kmsCryptoClient = KmsCryptoClient.builder().endpoint(sessionConfig.getCryptoEndpoint())
+				.httpProvider(httpProvider).configuration(clientConfiguration).build(getprovider());
 		String encodedData = Base64.getEncoder().encodeToString(message);
 
 		EncryptDataDetails encryptDataDetails = EncryptDataDetails.builder()
-				.encryptionAlgorithm(EncryptionAlgorithm.Aes256Gcm)
-				.keyId(sessionConfig.getKeyId())
-				.keyVersionId(sessionConfig.getKeyVersionId())
-				.plaintext(encodedData)
-				.build();
- 
-		EncryptRequest encryptRequest = EncryptRequest.builder()
-				.encryptDataDetails(encryptDataDetails)
-				.build();
+				.encryptionAlgorithm(EncryptionAlgorithm.Aes256Gcm).keyId(sessionConfig.getKeyId())
+				.keyVersionId(sessionConfig.getKeyVersionId()).plaintext(encodedData).build();
+
+		EncryptRequest encryptRequest = EncryptRequest.builder().encryptDataDetails(encryptDataDetails).build();
 
 		EncryptResponse encryptResponse = kmsCryptoClient.encrypt(encryptRequest);
 
@@ -127,23 +161,24 @@ public class OracleKeyVaultConnector {
 		return encryptedData.getCiphertext().getBytes();
 	}
 
-	public byte[] decryptAES(byte[] message) throws IOException{
+	/**
+	 * 
+	 * @param message
+	 * @return
+	 * @throws IOException
+	 */
+	public byte[] decryptAES(byte[] message) throws IOException {
 		ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
 		HttpProvider httpProvider = new JerseyHttpProvider();
-		KmsCryptoClient kmsCryptoClient = KmsCryptoClient.builder().endpoint(sessionConfig.getCryptoEndpoint()).httpProvider(httpProvider)
-			.configuration(clientConfiguration).build(getprovider());
-		
-		DecryptDataDetails decryptDataDetails = DecryptDataDetails.builder()
-				.ciphertext(new String(message))
-				.encryptionAlgorithm(DecryptDataDetails.EncryptionAlgorithm.Aes256Gcm)
-				.keyId(sessionConfig.getKeyId())
-				.keyVersionId(sessionConfig.getKeyVersionId())
-				.build();
-		
-		DecryptRequest decryptRequest = DecryptRequest.builder()
-				.decryptDataDetails(decryptDataDetails)
-				.build();
-		
+		KmsCryptoClient kmsCryptoClient = KmsCryptoClient.builder().endpoint(sessionConfig.getCryptoEndpoint())
+				.httpProvider(httpProvider).configuration(clientConfiguration).build(getprovider());
+
+		DecryptDataDetails decryptDataDetails = DecryptDataDetails.builder().ciphertext(new String(message))
+				.encryptionAlgorithm(DecryptDataDetails.EncryptionAlgorithm.Aes256Gcm).keyId(sessionConfig.getKeyId())
+				.keyVersionId(sessionConfig.getKeyVersionId()).build();
+
+		DecryptRequest decryptRequest = DecryptRequest.builder().decryptDataDetails(decryptDataDetails).build();
+
 		DecryptResponse decryptResponse = kmsCryptoClient.decrypt(decryptRequest);
 		DecryptedData decryptedData = decryptResponse.getDecryptedData();
 		return Base64.getDecoder().decode(decryptedData.getPlaintext());
