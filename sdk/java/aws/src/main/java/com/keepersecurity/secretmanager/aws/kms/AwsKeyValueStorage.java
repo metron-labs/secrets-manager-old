@@ -45,6 +45,13 @@ import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The {@code AwsKeyValueStorage} class is an implementation of the
+ * {@code KeyValueStorage} interface that provides methods for storing and
+ * retrieving key-value pairs using the AWS Key Management Service (KMS).
+ *	
+ */
+
 public class AwsKeyValueStorage implements KeyValueStorage {
 
 	final static Logger logger = LoggerFactory.getLogger(AwsKeyValueStorage.class);
@@ -92,8 +99,10 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	 * @param keyId              The AWS KMS Key ID used for encryption and
 	 *                           decryption.
 	 * @param configFileLocation The file path to the KSM configuration file.
+	 * @param profile            The AWS profile to use for authentication.
+	 * @param region             The AWS region where the KMS key is located.
 	 * @param sessionConfig      The AWS session configuration for authentication.
-	 * @return
+	 * @return An {@code AwsKeyValueStorage} instance.
 	 * @throws Exception If an error occurs during initialization or configuration
 	 *                   loading.
 	 */

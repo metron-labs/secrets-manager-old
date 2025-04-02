@@ -21,8 +21,8 @@ public class JsonUtil {
 
 	/**
 	 * Check Json File Valid / Invalid
-	 * @param filePath
-	 * @return
+	 * @param filePath File path along with file name
+	 * @return boolean 
 	 */
 	public static boolean isValidJsonFile(String filePath) {
 		try (FileReader reader = new FileReader(filePath)) {
@@ -36,8 +36,8 @@ public class JsonUtil {
 
 	/**
 	 * Check Json content Valid / Invalid
-	 * @param jsonContent
-	 * @return
+	 * @param jsonContent Check Json content
+	 * @return boolean
 	 */
 	public static boolean isValidJson(String jsonContent) {
 		try {
@@ -51,9 +51,9 @@ public class JsonUtil {
 
 	/**
 	 *  Convert String to Map
-	 * @param content
-	 * @return
-	 * @throws JsonProcessingException
+	 * @param content Convert String content to Map
+	 * @return Converted string content into Map
+	 * @throws JsonProcessingException Throws exception if any error occurs during conversion
 	 */
 	public static Map<String, Object> convertToMap(String content) throws JsonProcessingException {
 		return objectMapper.readValue(content, new TypeReference<Map<String, Object>>() {
@@ -62,9 +62,9 @@ public class JsonUtil {
 	
 	/**
 	 * Convert Map to String
-	 * @param configMap
-	 * @return
-	 * @throws JsonProcessingException
+	 * @param configMap Convert Map to String
+	 * @return Converted Map to String
+	 * @throws JsonProcessingException Throws exception if any error occurs during conversion
 	 */
 	public static String convertToString(Map<String, Object> configMap) throws JsonProcessingException {
 		return objectMapper.writeValueAsString(configMap);
