@@ -10,6 +10,7 @@
 
 import logging
 import traceback
+import os
 
 try:
     from google.cloud import kms
@@ -18,6 +19,8 @@ except ImportError:
     logging.getLogger().error("Missing GCP import dependencies."
                  " To install missing packages run: \r\n"
                  "pip install --upgrade \"google-cloud-kms\"\r\n"
+                 "pip install --upgrade \"google-crc32c\"\r\n"
+                 "pip install --upgrade \"pycryptodome\"\r\n"
                  "pip install --upgrade \"google-auth\"\r\n")
     raise Exception(f"Missing import dependencies: google cloud kms and google oauth2. Additional details: {traceback.format_exc()}")
 
@@ -42,7 +45,7 @@ class GCPKMSClientConfig:
                                           the service account credentials.
         :return: The GCPKMSClient instance with the new client.
         """
-        credentials = service_account.Credentials.from_service_account_file(credentials_key_file_path)
+        credentials = service_account.Credentials.from_service_account_file(os.path.abspath(credentials_key_file_path))
         self.kms_client = kms.KeyManagementServiceClient(credentials=credentials)
         return self
 

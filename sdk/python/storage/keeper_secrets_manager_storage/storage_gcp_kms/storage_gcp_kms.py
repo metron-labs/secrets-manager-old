@@ -39,7 +39,7 @@ class GCPKeyValueStorage(KeyValueStorage):
     
     
     def __init__(self, key_vault_config_file_location: str , gcp_key_config: GCPKeyConfig, gcp_session_config: GCPKMSClientConfig, logger: Logger = None):
-        self.config_file_location = key_vault_config_file_location or os.getenv('KSM_CONFIG_FILE') or self.default_config_file_location
+        self.config_file_location = os.path.abspath(key_vault_config_file_location) or os.getenv('KSM_CONFIG_FILE') or os.path.abspath(self.default_config_file_location)
         self.set_logger(logger)
         
         self.gcp_session_config = gcp_session_config
@@ -82,6 +82,7 @@ class GCPKeyValueStorage(KeyValueStorage):
             
     def create_config_file_if_missing(self):
         try:
+            self.logger.info(f"config file path {self.config_file_location}")
             # Check if the config file already exists
             if not os.path.exists(self.config_file_location):
                 # Ensure the directory structure exists
@@ -91,7 +92,7 @@ class GCPKeyValueStorage(KeyValueStorage):
 
                 # Encrypt an empty configuration and write to the file
                 empty_config = "{}"
-                blob = self.crypto_client.encrypt_buffer(
+                blob = encrypt_buffer(
                     is_asymmetric=self.is_asymmetric,
                     message=empty_config,
                     crypto_client=self.crypto_client,
