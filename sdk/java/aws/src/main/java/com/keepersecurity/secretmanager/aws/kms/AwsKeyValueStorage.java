@@ -45,18 +45,6 @@ import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * 
- * @param keyId              The AWS KMS Key ID used for encryption and
- *                           decryption.
- * @param configFileLocation The file path to the KSM configuration file.
- * @param profile            The AWS profile to use for authentication.
- * @param sessionConfig      The AWS session configuration for authentication.
- * @param region             The AWS region where the KMS key is located.
- * @throws Exception If an error occurs during initialization or configuration
- *                   loading.
- */
-
 public class AwsKeyValueStorage implements KeyValueStorage {
 
 	final static Logger logger = LoggerFactory.getLogger(AwsKeyValueStorage.class);
@@ -69,6 +57,18 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 
 	private AWSKMSClient kmsClient;
 
+	/**
+	 * 
+	 * @param keyId              The AWS KMS Key ID used for encryption and
+	 *                           decryption.
+	 * @param configFileLocation The file path to the KSM configuration file.
+	 * @param profile            The AWS profile to use for authentication.
+	 * @param sessionConfig      The AWS session configuration for authentication.
+	 * @param region             The AWS region where the KMS key is located.
+	 * @throws Exception If an error occurs during initialization or configuration
+	 *                   loading.
+	 */
+	
 	public AwsKeyValueStorage(String keyId, String configFileLocation, String profile, AwsSessionConfig sessionConfig,
 			Region region)
 			throws Exception {
