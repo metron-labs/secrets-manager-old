@@ -3,12 +3,13 @@ package com.keepersecurity.secretmanager.aws.kms;
 /**
  * The {@code Constants} class contains a collection of constant values used for cryptographic operations
  * and configurations in the AWS KMS (Key Management Service) integration.
- *
- */
-/**
- * A class containing constant values used for cryptographic operations.
+ * 
  */
 public class Constants {
+	/**
+	 * Private constructor to prevent instantiation of the class.
+	 */
+	private Constants(){}
 
 	/**
 	 * Constant representing the RSA 2048-bit encryption algorithm.

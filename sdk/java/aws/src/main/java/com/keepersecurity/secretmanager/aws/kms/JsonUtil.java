@@ -24,6 +24,11 @@ public class JsonUtil {
 	private static ObjectMapper objectMapper = new ObjectMapper();
 
 	/**
+	 * Private constructor to prevent instantiation of the class.
+	 */
+	private JsonUtil() {}
+
+	/**
 	 * Check Json File Valid / Invalid
 	 * @param filePath File path along with file name
 	 * @return boolean 
