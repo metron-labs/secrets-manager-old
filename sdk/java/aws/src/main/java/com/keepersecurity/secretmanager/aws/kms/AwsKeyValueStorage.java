@@ -65,6 +65,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	private AWSKMSClient kmsClient;
 
 	/**
+	 * Initializes a new instance of the {@code AwsKeyValueStorage} 
 	 * 
 	 * @param keyId              The AWS KMS Key ID used for encryption and
 	 *                           decryption.
@@ -95,6 +96,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	}
 
 	/**
+	 * Creates and returns an instance of {@code AwsKeyValueStorage}.
 	 * 
 	 * @param keyId              The AWS KMS Key ID used for encryption and
 	 *                           decryption.
@@ -102,7 +104,7 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 	 * @param profile            The AWS profile to use for authentication.
 	 * @param region             The AWS region where the KMS key is located.
 	 * @param sessionConfig      The AWS session configuration for authentication.
-	 * @return An {@code AwsKeyValueStorage} instance.
+	 * @return An instance of {@code AwsKeyValueStorage}.
 	 * @throws Exception If an error occurs during initialization or configuration
 	 *                   loading.
 	 */
@@ -353,6 +355,11 @@ public class AwsKeyValueStorage implements KeyValueStorage {
 		return Base64.getEncoder().encodeToString(digest);
 	}
 
+	/**
+	 * Convert base64 string to byte array
+	 * @param base64String Base64 string
+	 * @return byte array
+	 */
 	public byte[] base64ToBytes(String base64String) {
 		if (base64String == null || base64String.isEmpty()) {
 			return null; // Or you can throw an IllegalArgumentException based on your preference

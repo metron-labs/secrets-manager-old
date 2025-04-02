@@ -14,6 +14,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
+/**
+ * JsonUtil class is used to check Json file and content is valid or not
+ * Convert String to Map and Map to String
+ */
 public class JsonUtil {
 
 	final static Logger logger = LoggerFactory.getLogger(JsonUtil.class);

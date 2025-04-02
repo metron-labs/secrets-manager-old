@@ -28,12 +28,20 @@ import software.amazon.awssdk.services.kms.model.EncryptRequest;
 import software.amazon.awssdk.services.kms.model.EncryptResponse;
 import software.amazon.awssdk.services.kms.model.EncryptionAlgorithmSpec;
 
+/**
+ * AWSKMSClient class is used to encrypt and decrypt the message using the specified KMS key.
+ */
 public class AWSKMSClient {
 
 	final static Logger logger = LoggerFactory.getLogger(AWSKMSClient.class);
 
 	private KmsClient kmsClient;
-
+	/**
+	 * Initialize AWSKMSClient with sessionConfig and region
+	 * @param sessionConfig The AWS session configuration for authentication.
+	 * @param region The AWS region where the KMS key is located.
+	 * 
+	 */
 	public AWSKMSClient(AwsSessionConfig sessionConfig, Region region) {
 		AwsBasicCredentials awsCreds = AwsBasicCredentials.create(sessionConfig.getAwsAccessKeyId(),
 				sessionConfig.getAwsSecretAccessKey());
@@ -41,6 +49,12 @@ public class AWSKMSClient {
 				.region(region).build();
 	}
 
+	/**
+	 * Initialize AWSKMSClient with profile and region
+	 * @param profile The AWS profile to use for authentication.
+	 * @param region The AWS region where the KMS key is located.
+	 * 
+	 */
 	public AWSKMSClient(String profile, Region region) {
 		ProfileCredentialsProvider awsCreds = ProfileCredentialsProvider.create(profile);
 		kmsClient = KmsClient.builder()
@@ -49,6 +63,13 @@ public class AWSKMSClient {
 				.build();
 	}
 
+	/**
+	 * Encrypt the message using the specified KMS key.
+	 * @param message The message to encrypt.
+	 * @param keyId The KMS key ID to use for encryption.
+	 * @return The encrypted message.
+	 * @throws Exception Throws an exception if an error occurs during encryption.
+	 */
 	public byte[] encrypt(SdkBytes message, String keyId) throws Exception {
 		if (Constants.SYMMETRIC_DEFAULT.equals(getKeySpecType(keyId))) {
 			return encryptSymmetric(message, keyId);
@@ -57,6 +78,13 @@ public class AWSKMSClient {
 		}
 	}
 
+	/**
+	 * Decrypt the ciphertext using the specified KMS key.
+	 * @param ciphertext The ciphertext to decrypt.
+	 * @param keyId The KMS key ID to use for decryption.
+	 * @return The decrypted message.
+	 * @throws Exception Throws an exception if an error occurs during decryption.
+	 */
 	public SdkBytes decrypt(byte[] ciphertext, String keyId) throws Exception {
 		if (Constants.SYMMETRIC_DEFAULT.equals(getKeySpecType(keyId))) {
 			return decryptSymmetric(ciphertext, keyId);
@@ -70,6 +98,11 @@ public class AWSKMSClient {
 				.keySpecAsString();
 	}
 
+	/**
+	 * Check if the KMS key is a symmetric key.
+	 * @param keyId The KMS key ID to check.
+	 * @return True if the key is a symmetric key, false otherwise.
+	 */
 	public boolean isSymmetricKey(String keyId) {
 		if (Constants.SYMMETRIC_DEFAULT.equals(getKeySpecType(keyId))) {
 			return true;
