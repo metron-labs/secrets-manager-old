@@ -3,7 +3,7 @@ package com.keepersecurity.secretmanager.aws.kms;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
+/*
 #  _  __
 # | |/ /___ ___ _ __  ___ _ _ (R)
 # | ' </ -_) -_) '_ \/ -_) '_|
@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 # Keeper Secrets Manager
 # Copyright 2025 Keeper Security Inc.
 # Contact: sm@keepersecurity.com
-**/
+*/
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
@@ -40,19 +40,19 @@ public class AWSKMSClient {
 		kmsClient = KmsClient.builder().credentialsProvider(StaticCredentialsProvider.create(awsCreds))
 				.region(region).build();
 	}
-	
+
 	public AWSKMSClient(String profile, Region region) {
 		ProfileCredentialsProvider awsCreds = ProfileCredentialsProvider.create(profile);
 		kmsClient = KmsClient.builder()
-                .region(region)  // Specify the region
-                .credentialsProvider(awsCreds)  // Use default AWS credentials provider
-                .build();
-    }
-	
+				.region(region) // Specify the region
+				.credentialsProvider(awsCreds) // Use default AWS credentials provider
+				.build();
+	}
+
 	public byte[] encrypt(SdkBytes message, String keyId) throws Exception {
 		if (Constants.SYMMETRIC_DEFAULT.equals(getKeySpecType(keyId))) {
 			return encryptSymmetric(message, keyId);
-		}else {
+		} else {
 			return encryptAsymmetric(message, keyId);
 		}
 	}
@@ -60,23 +60,23 @@ public class AWSKMSClient {
 	public SdkBytes decrypt(byte[] ciphertext, String keyId) throws Exception {
 		if (Constants.SYMMETRIC_DEFAULT.equals(getKeySpecType(keyId))) {
 			return decryptSymmetric(ciphertext, keyId);
-		}else {
+		} else {
 			return decryptAsymmetric(ciphertext, keyId);
 		}
 	}
-	
+
 	private String getKeySpecType(String keyId) {
 		return kmsClient.describeKey(DescribeKeyRequest.builder().keyId(keyId).build()).keyMetadata()
 				.keySpecAsString();
 	}
-	
+
 	public boolean isSymmetricKey(String keyId) {
 		if (Constants.SYMMETRIC_DEFAULT.equals(getKeySpecType(keyId))) {
 			return true;
 		}
 		return false;
 	}
-	
+
 	private byte[] encryptSymmetric(SdkBytes message, String keyId) throws Exception {
 		logger.debug("Encrypt Using Symmetric Key");
 		EncryptRequest encryptRequest = EncryptRequest.builder().keyId(keyId)
@@ -94,7 +94,7 @@ public class AWSKMSClient {
 		DecryptResponse decryptResponse = kmsClient.decrypt(decryptRequest);
 		return decryptResponse.plaintext();
 	}
-	
+
 	private byte[] encryptAsymmetric(SdkBytes message, String keyId) throws Exception {
 		logger.debug("Encrypt Using Asymmetric Key");
 		EncryptRequest encryptRequest = EncryptRequest.builder().keyId(keyId)
@@ -104,6 +104,7 @@ public class AWSKMSClient {
 		EncryptResponse encryptResponse = kmsClient.encrypt(encryptRequest);
 		return encryptResponse.ciphertextBlob().asByteArray();
 	}
+
 	private SdkBytes decryptAsymmetric(byte[] ciphertext, String keyId) throws Exception {
 		logger.debug("Decrypt Using Asymmetric Key");
 		DecryptRequest decryptRequest = DecryptRequest.builder().keyId(keyId)
