@@ -42,9 +42,9 @@ To do this, use GcpKmsKeyvalueStorage as your Secrets Manager storage in the Sec
 
 The storage will require a GCP Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by GCP KMS.
 ```
-    from storage.keeper_secrets_manager_storage.storage_gcp_kms import GCPKeyConfig, GCPKeyValueStorage,GCPKMSClientConfig
+    from keeper_secrets_manager_storage.storage_gcp_kms import GCPKeyConfig, GCPKeyValueStorage,GCPKMSClientConfig
 
-    from core.keeper_secrets_manager_core import SecretsManager
+    from keeper_secrets_manager_core import SecretsManager
 
     gcp_key_config_1 = GCPKeyConfig("<key_resource_uri_1>")
     gcp_key_config_2 = GCPKeyConfig("<key_resource_uri_1>")
