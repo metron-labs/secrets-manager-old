@@ -1,5 +1,17 @@
 package com.keepersecurity.secretsmanager.gcp;
 
+/*
+*  _  __
+* | |/ /___ ___ _ __  ___ _ _ (R)
+* | ' </ -_) -_) '_ \/ -_) '_|
+* |_|\_\___\___| .__/\___|_|
+*              |_|
+*
+* Keeper Secrets Manager
+* Copyright 2025 Keeper Security Inc.
+* Contact: sm@keepersecurity.com
+*/
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.StringReader;
@@ -32,6 +44,11 @@ import com.google.cloud.kms.v1.CryptoKeyVersionName;
 import com.google.cloud.kms.v1.DecryptRequest;
 import com.google.cloud.kms.v1.EncryptRequest;
 
+
+/**
+ * {@code KMSUtils} class is used to encrypt and decrypt the message using the specified KeyId and Version.
+ */
+
 public class KMSUtils {
 
 	final static Logger logger = LoggerFactory.getLogger(KMSUtils.class);
@@ -52,6 +69,10 @@ public class KMSUtils {
 		rsaAlgorithmToSHA.put("RSA_DECRYPT_OAEP_4096_SHA1", "SHA-1");
 	}
 
+	/**
+	 * Initialize KMSUtils with sessionConfig 
+	 * @param sessionConfig		The GCP session configuration for authentication.
+	 */
 	public KMSUtils(GcpSessionConfig sessionConfig) {
 		try {
 			if (sessionConfig.getCredentialsPath().isEmpty()) {
@@ -77,6 +98,10 @@ public class KMSUtils {
 		}
 	}
 
+	/**
+	 * Method is used to set new Key Id in session config
+	 * @param newKeyId  New Key Id
+	 */
 	public void setKeyId(String newKeyId) {
 		this.sessionConfig.setKeyId(newKeyId);
 	}
@@ -88,9 +113,9 @@ public class KMSUtils {
 	/**
 	 * Encrypt data using an asymmetric RSA public key
 	 * 
-	 * @param text
-	 * @return
-	 * @throws Exception
+	 * @param text	Message to encrypt
+	 * @return encrypted byte data
+	 * @throws Exception Throws Exception
 	 */
 	public byte[] encryptAsymmetricRsa(byte[] text) throws Exception {
 		logger.debug("Encrypt Using Asymmetric Key");
@@ -125,8 +150,8 @@ public class KMSUtils {
 	 * Converts a base64-encoded PEM certificate like the one returned from Cloud
 	 * KMS into a DER formatted certificate for use with the Java APIs.
 	 * 
-	 * @param pem
-	 * @return
+	 * @param pem Pem data
+	 * @return encrypted into base64
 	 */
 	private byte[] convertPemToDer(String pem) {
 		BufferedReader bufferedReader = new BufferedReader(new StringReader(pem));
@@ -139,7 +164,7 @@ public class KMSUtils {
 	/**
 	 * Decrypt data using an asymmetric RSA private key
 	 * 
-	 * @param ciphertext
+	 * @param ciphertext  encrypted message
 	 * @return
 	 * @throws Exception
 	 */
@@ -156,6 +181,12 @@ public class KMSUtils {
 		return decryptedText.getPlaintext().toByteArray();
 	}
 
+	/**
+	 * Encrypt plain text using Symmetric key
+	 * @param plaintext plain text to encrypt
+	 * @return encrypted text in byte string
+	 * @throws Exception
+	 */
 	public ByteString encryptSymmetric(String plaintext) throws Exception {
 		logger.debug("Encrypt Using Symmetric Key");
 		// Convert plaintext to ByteString
@@ -170,6 +201,12 @@ public class KMSUtils {
 		return ciphertext;
 	}
 
+	/**
+	 * Decrypt using Symmetric key
+	 * @param ciphertext  Encrypted text to decrypt
+	 * @return Return decryoted text in String
+	 * @throws Exception
+	 */
 	public String decryptSymmetric(ByteString ciphertext) throws Exception {
 		logger.debug("Decrypt Using Symmetric Key");
 		// Decrypt the data
@@ -186,6 +223,10 @@ public class KMSUtils {
 				sessionConfig.getLocation(), sessionConfig.getKeyRing(), sessionConfig.getKeyId());
 	}
 
+	/**
+	 * Check key is Symmetric Key
+	 * @return true/false
+	 */
 	public boolean isSymmetricKey() {
 		// Fetch the key version (use the primary version of the key)
 		CryptoKeyVersionAlgorithm algorithms = getCryptoKeyVersionAlgorithm();

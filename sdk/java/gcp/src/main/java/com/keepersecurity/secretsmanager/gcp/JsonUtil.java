@@ -1,5 +1,16 @@
 package com.keepersecurity.secretsmanager.gcp;
 
+/*
+*  _  __
+* | |/ /___ ___ _ __  ___ _ _ (R)
+* | ' </ -_) -_) '_ \/ -_) '_|
+* |_|\_\___\___| .__/\___|_|
+*              |_|
+*
+* Keeper Secrets Manager
+* Copyright 2025 Keeper Security Inc.
+* Contact: sm@keepersecurity.com
+*/
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -15,6 +26,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
+/**
+ * JsonUtil class is used to check Json file and content is valid or not
+ * Convert String to Map and Map to String
+ */
 public class JsonUtil {
 
 	final static Logger logger = LoggerFactory.getLogger(JsonUtil.class);

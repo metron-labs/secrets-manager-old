@@ -1,16 +1,16 @@
 package com.keepersecurity.secretsmanager.gcp;
 
-/**
-#  _  __
-# | |/ /___ ___ _ __  ___ _ _ (R)
-# | ' </ -_) -_) '_ \/ -_) '_|
-# |_|\_\___\___| .__/\___|_|
-#              |_|
-#
-# Keeper Secrets Manager
-# Copyright 2025 Keeper Security Inc.
-# Contact: sm@keepersecurity.com
-**/
+/*
+*  _  __
+* | |/ /___ ___ _ __  ___ _ _ (R)
+* | ' </ -_) -_) '_ \/ -_) '_|
+* |_|\_\___\___| .__/\___|_|
+*              |_|
+*
+* Keeper Secrets Manager
+* Copyright 2025 Keeper Security Inc.
+* Contact: sm@keepersecurity.com
+*/
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -42,6 +42,12 @@ import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The {@code GcpKeyValueStorage} class is an implementation of the
+ * {@code KeyValueStorage} interface that provides methods for storing and
+ * retrieving key-value pairs using the  GCP Key Management System (KMS).
+ *	
+ */
 public class GcpKeyValueStorage implements KeyValueStorage {
 
 	final static Logger logger = LoggerFactory.getLogger(GcpKeyValueStorage.class);
@@ -52,6 +58,13 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 
 	private KMSUtils kmsClient;
 
+	/**
+	 *  Initializes a new instance of the {@code GcpKeyValueStorage} 
+	 * @param configFileLocation  	The file path to the KSM configuration file.
+	 * @param sessionConfig 		The GCP session configuration for authentication.
+	 * @throws Exception			If an error occurs during initialization or configuration
+	 *                   loading.
+	 */
 	public GcpKeyValueStorage(String configFileLocation, GcpSessionConfig sessionConfig) throws Exception {
 		this.configFileLocation = configFileLocation != null ? configFileLocation
 				: System.getenv("KSM_CONFIG_FILE") != null ? System.getenv("KSM_CONFIG_FILE")
@@ -62,12 +75,13 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 	}
 
 	/**
-	 * 
-	 * @param keyId
-	 * @param configFileLocation
-	 * @param sessionConfig
-	 * @return
-	 * @throws Exception
+	 * Creates and returns an instance of {@code GcpKeyValueStorage}.
+	 * @param keyId		The GCP KMS Key ID used for encryption / decryption.
+	 * @param configFileLocation	The file path to the KSM configuration file.
+	 * @param sessionConfig		The GCP session configuration for authentication.
+	 * @return 		An instance of {@code GcpKeyValueStorage}.
+	 * @throws Exception 	If an error occurs during initialization or configuration
+	 *                   loading.
 	 */
 	public static GcpKeyValueStorage getInternalStorage(String configFileLocation, GcpSessionConfig sessionConfig)
 			throws Exception {
@@ -78,7 +92,9 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 	/**
 	 * Change key method used to re-encrypt the config with new Key
 	 * 
-	 * @param newKeyId
+	 * @param newKeyId	The new AWS KMS Key ID used for encryption and decryption.
+	 * @return true if key change is successful, false otherwise.
+	 * 
 	 */
 	public boolean changeKey(String newKeyId) {
 		logger.info("Change Key initiated");
@@ -161,9 +177,11 @@ public class GcpKeyValueStorage implements KeyValueStorage {
 	/**
 	 * Decrypt the encrypted config, autosave=true/false
 	 * 
-	 * @param autosave
-	 * @return
-	 * @throws Exception
+	 * @param autosave	 Set to {@code true} to save the ksm configuration json file
+	 *                	 as plaintext, and {@code false} to retrieve only the
+	 *                	 plaintext of the KSM configuration.
+	 * @return	 			The decrypted configuration as a String.
+	 * @throws Exception	If an error occurs during the decryption process.
 	 */
 	public String decryptConfig(boolean autosave) throws Exception {
 		String decryptedContent = null;

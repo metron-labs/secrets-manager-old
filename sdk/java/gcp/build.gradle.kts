@@ -3,13 +3,23 @@ import org.gradle.kotlin.dsl.signing
 
 group = "com.keepersecurity.secrets-manager.gcp"
 version = "1.0.0"
+
 plugins {
-    // Apply the java-library plugin for API and implementation separation.
-    `java-library`
+    id ("java");
+    kotlin("jvm") version "2.0.20"
+    kotlin("plugin.serialization") version "2.0.20"
+    `maven-publish`
+    signing
+    id("com.github.johnrengelman.shadow") version "7.1.2"
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11)) 
+    }
 }
 
 repositories {
-    // Use Maven Central for resolving dependencies.
     mavenCentral()
 }
 
@@ -31,14 +41,70 @@ dependencies {
    	  implementation("com.google.auth:google-auth-library-oauth2-http:1.33.0")
 }
 
-// Apply a specific Java toolchain to ease working on different environments.
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of((System.getenv("JAVA_VERSION")?.toInt() ?: 11))
+tasks.register<Jar>("fatJar") {
+    manifest {
+        attributes(
+            "Implementation-Title" to "Keeper Secrets Manager GCP KMS Integration",
+            "Implementation-Version" to archiveVersion
+        )
+    }
+    from(sourceSets.main.get().output)
+    dependsOn(configurations.runtimeClasspath)
+    
+}
+
+configurations {
+    all {
+        
     }
 }
 
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 tasks.named<Test>("test") {
-    // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+}
+
+publishing {
+	publications {
+        create<MavenPublication>("mavenJava") {
+        	artifactId = project.rootProject.name
+        	from(components["java"])
+        	 versionMapping {
+                usage("java-api") {
+                    fromResolutionOf("runtimeClasspath")
+                }
+                usage("java-runtime") {
+                    fromResolutionResult()
+                }
+            }
+            pom {
+                name.set("Keeper Secrets Manager")
+                description.set("Keeper Secrets Manager is a component of the Keeper Enterprise platform. " +
+                        "It provides your DevOps, IT Security and software development teams with a fully cloud-based, " +
+                        "Zero-Knowledge platform for managing all of your infrastructure secrets such as API keys, " +
+                        "Database passwords, access keys, certificates and any type of confidential data.")
+                url.set("https://github.com/Keeper-Security/secrets-manager")
+                licenses {
+                    license {
+                        name.set("MIT")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+			}
+        }
+    }
+  }
+    
+signing {
+    sign(publishing.publications["mavenJava"])
+}
+
+tasks.javadoc {
+    if (JavaVersion.current().isJava9Compatible) {
+        (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
+    }
 }
