@@ -1,5 +1,17 @@
 package com.keepersecurity.secretmanager.oracle.kv;
 
+/*
+*  _  __
+* | |/ /___ ___ _ __  ___ _ _ (R)
+* | ' </ -_) -_) '_ \/ -_) '_|
+* |_|\_\___\___| .__/\___|_|
+*              |_|
+*
+* Keeper Secrets Manager
+* Copyright 2025 Keeper Security Inc.
+* Contact: sm@keepersecurity.com
+*/
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -28,19 +40,14 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.keepersecurity.secretsManager.core.KeyValueStorage;
 
+
+
 /**
-#  _  __
-# | |/ /___ ___ _ __  ___ _ _ (R)
-# | ' </ -_) -_) '_ \/ -_) '_|
-# |_|\_\___\___| .__/\___|_|
-#              |_|
-#
-# Keeper Secrets Manager
-# Copyright 2025 Keeper Security Inc.
-# Contact: sm@keepersecurity.com
-**/
-
-
+ * The {@code OracleKeyValueStorage} class is an implementation of the
+ * {@code KeyValueStorage} interface that provides methods for storing and
+ * retrieving key-value pairs using the Oracle Key vault(OCI).
+ *	
+ */
 public class OracleKeyValueStorage implements KeyValueStorage{
 	 final static Logger logger = LoggerFactory.getLogger(OracleKeyValueStorage.class);
 
@@ -53,6 +60,13 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 
 		private OracleKeyVaultConnector ociClient;
 
+		/**
+		 * Constructor used to initialize Oracle KeyValueStorage
+		 * @param configFileLocation: Configuration file location
+		 * @param profile: The Oracle secret profile [DEFAULT] used for authentication
+		 * @param sessionConfig: Session Configuration instance
+		 * @throws Exception: Throws Exception
+		 */
 		public OracleKeyValueStorage(String configFileLocation, String profile, OracleSessionConfig sessionConfig)
 				throws Exception {
 			this.configFileLocation = configFileLocation != null ? configFileLocation
@@ -67,12 +81,13 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		}
 
 		/**
-		 * 
-		 * @param keyId
-		 * @param configFileLocation
-		 * @param sessionConfig
-		 * @return
-		 * @throws Exception
+		 *  Creates and returns an instance of {@code OracleKeyValueStorage}.
+		 * @param keyId					The OCI key id used for encryption/decryption
+		 * @param configFileLocation  	The file path to the KSM configuration file.
+		 * @param sessionConfig			The Oracle session configuration for authentication.
+		 * @return 						An instance of {@code OracleKeyValueStorage}.
+		 * @throws Exception  			If an error occurs during initialization or configuration
+		 *                   			loading.
 		 */
 		public static OracleKeyValueStorage getInternalStorage(String keyId, String keyVersion, String configFileLocation, String profile,
 				OracleSessionConfig sessionConfig) throws Exception {
@@ -83,7 +98,8 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		
 		/**
 		 * Change key method used to encrypt config with new key
-		 * @param newKeyId
+		 * @param newKeyId: New Key ID
+		 * @return true if key change is successful, false otherwise.
 		 */
 		public boolean changeKey(String newKeyId, String newKeyVersion) {
 			logger.info("Change Key initiated");
@@ -108,7 +124,7 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		}
 
 		/**
-		 * 
+		 * Load the Configuration from file
 		 * @throws Exception
 		 */
 		private void loadConfig() throws Exception {

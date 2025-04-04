@@ -1,5 +1,17 @@
 package com.keepersecurity.secretmanager.oracle.kv;
 
+/*
+*  _  __
+* | |/ /___ ___ _ __  ___ _ _ (R)
+* | ' </ -_) -_) '_ \/ -_) '_|
+* |_|\_\___\___| .__/\___|_|
+*              |_|
+*
+* Keeper Secrets Manager
+* Copyright 2025 Keeper Security Inc.
+* Contact: sm@keepersecurity.com
+*/
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Base64;
@@ -28,18 +40,10 @@ import com.oracle.bmc.keymanagement.responses.DecryptResponse;
 import com.oracle.bmc.keymanagement.responses.EncryptResponse;
 import com.oracle.bmc.keymanagement.responses.GetKeyResponse;
 
-/**
-#  _  __
-# | |/ /___ ___ _ __  ___ _ _ (R)
-# | ' </ -_) -_) '_ \/ -_) '_|
-# |_|\_\___\___| .__/\___|_|
-#              |_|
-#
-# Keeper Secrets Manager
-# Copyright 2025 Keeper Security Inc.
-# Contact: sm@keepersecurity.com
-**/
 
+/**
+ * This class is used to connect to Oracle KeyVault
+ */
 public class OracleKeyVaultConnector {
 	public OracleSessionConfig sessionConfig;
 	private String profile;
@@ -50,7 +54,7 @@ public class OracleKeyVaultConnector {
 	}
 
 	/**
-	 * 
+	 * This method return AuthenticationDetailsProvider
 	 * @return
 	 * @throws IOException
 	 */
@@ -64,8 +68,8 @@ public class OracleKeyVaultConnector {
 	}
 
 	/**
-	 * 
-	 * @param keyId
+	 * This method returns KeyShape.Algorithm
+	 * @param keyId: Key ID
 	 * @return
 	 * @throws IOException
 	 */
@@ -80,8 +84,8 @@ public class OracleKeyVaultConnector {
 	}
 
 	/**
-	 * 
-	 * @param keyId
+	 * This method check Key is symmetric return true/false
+	 * @param keyId: Key ID
 	 * @return
 	 * @throws IOException
 	 */
@@ -93,7 +97,7 @@ public class OracleKeyVaultConnector {
 	}
 
 	/**
-	 * 
+	 * This method encrypt using RSA
 	 * @param message
 	 * @return
 	 * @throws IOException
@@ -116,9 +120,9 @@ public class OracleKeyVaultConnector {
 	}
 
 	/**
-	 * 
+	 * This method decrypt using RSA
 	 * @param message
-	 * @return
+	 * @return The decrypted configuration as a String.
 	 * @throws IOException
 	 */
 	public byte[] decryptRSA(byte[] message) throws IOException {
@@ -137,7 +141,7 @@ public class OracleKeyVaultConnector {
 	}
 
 	/**
-	 * 
+	 * This method encrypt using AES
 	 * @param message
 	 * @return
 	 * @throws IOException
@@ -162,7 +166,7 @@ public class OracleKeyVaultConnector {
 	}
 
 	/**
-	 * 
+	 * This method decrypt using AES
 	 * @param message
 	 * @return
 	 * @throws IOException
