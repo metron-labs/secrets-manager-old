@@ -4,17 +4,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /*
-#  _  __
-# | |/ /___ ___ _ __  ___ _ _ (R)
-# | ' </ -_) -_) '_ \/ -_) '_|
-# |_|\_\___\___| .__/\___|_|
-#              |_|
-#
-# Keeper Secrets Manager
-# Copyright 2025 Keeper Security Inc.
-# Contact: sm@keepersecurity.com
+*  _  __
+* | |/ /___ ___ _ __  ___ _ _ (R)
+* | ' </ -_) -_) '_ \/ -_) '_|
+* |_|\_\___\___| .__/\___|_|
+*              |_|
+*
+* Keeper Secrets Manager
+* Copyright 2025 Keeper Security Inc.
+* Contact: sm@keepersecurity.com
 */
-
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
