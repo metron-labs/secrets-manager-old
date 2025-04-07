@@ -210,7 +210,7 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		 * @param mode
 		 * @param iv
 		 * @param key
-		 * @return
+		 * @return Retunr Cipher instance
 		 * @throws NoSuchPaddingException
 		 * @throws NoSuchAlgorithmException
 		 * @throws InvalidAlgorithmParameterException
@@ -255,7 +255,7 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		/**
 		 * 
 		 * @param encryptedData
-		 * @return
+		 * @return Return decrypted String
 		 * @throws Exception
 		 */
 		private String decryptBuffer(byte[] encryptedData) throws Exception {
@@ -294,7 +294,7 @@ public class OracleKeyValueStorage implements KeyValueStorage{
 		/**
 		 * Decrypt the encrypted config, autosave=true/false
 		 * @param autosave
-		 * @return
+		 * @return Return decrypted configuration
 		 * @throws Exception
 		 */
 		public String decryptConfig(boolean autosave) throws Exception {

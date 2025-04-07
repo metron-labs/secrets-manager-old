@@ -37,7 +37,7 @@ public class JsonUtil {
 	/**
 	 * Check Json File Valid / Invalid
 	 * @param filePath
-	 * @return
+	 * @return Return the boolean true/false
 	 */
 	public static boolean isValidJsonFile(String filePath) {
 		try (FileReader reader = new FileReader(filePath)) {
@@ -53,7 +53,7 @@ public class JsonUtil {
 	/**
 	 * Check Json content Valid / Invalid
 	 * @param jsonContent
-	 * @return
+	 * @return Return the boolean true/false
 	 */
 	public static boolean isValidJson(String jsonContent) {
 		try {
@@ -68,7 +68,7 @@ public class JsonUtil {
 	/**
 	 *  Convert String to Map
 	 * @param content
-	 * @return
+	 * @return Return the Map 
 	 * @throws JsonProcessingException
 	 */
 	public static Map<String, Object> convertToMap(String content) throws JsonProcessingException {
@@ -80,7 +80,7 @@ public class JsonUtil {
 	/**
 	 * Convert Map to String
 	 * @param configMap
-	 * @return
+	 * @return Return the string value from config map
 	 * @throws JsonProcessingException
 	 */
 	public static String convertToString(Map<String, Object> configMap) throws JsonProcessingException {

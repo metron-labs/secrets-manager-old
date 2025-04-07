@@ -52,8 +52,8 @@ public class OracleSessionConfig {
 		this.region = region;
 	}
 	/**
-	 * 
-	 * @return
+	 * Get the configuration path
+	 * @return Return config path
 	 */
 	public String getConfigPath() {
 		return this.configPath;
@@ -69,7 +69,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Get the oracle crypto Endpoint
-	 * @return
+	 * @return Return crypto endpoint
 	 */
 	public String getCryptoEndpoint() {
 		return cryptoEndpoint;
@@ -85,7 +85,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Return vault ID
-	 * @return
+	 * @return Return vault Id
 	 */
 	public String getVaultId() {
 		return vaultId;
@@ -101,7 +101,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Return Key ID
-	 * @return
+	 * @return Return Key Id
 	 */
 	public String getKeyId() {
 		return keyId;
@@ -117,7 +117,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Get Key Verion ID
-	 * @return
+	 * @return Return Key Version ID
 	 */
 	public String getKeyVersionId() {
 		return keyVersionId;
@@ -140,14 +140,14 @@ public class OracleSessionConfig {
 	}
 	/**
 	 * Get Management Endpoint
-	 * @return
+	 * @return Return Management Endpoint
 	 */
 	public String getManagementEndpoint() {
 		return managementEndpoint;
 	}
 	/**
 	 * Get Region
-	 * @return
+	 * @return Return Region
 	 */
 	public Region getRegion() {
 		return region;

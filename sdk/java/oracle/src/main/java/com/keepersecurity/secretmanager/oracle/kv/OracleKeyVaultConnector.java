@@ -55,7 +55,7 @@ public class OracleKeyVaultConnector {
 
 	/**
 	 * This method return AuthenticationDetailsProvider
-	 * @return
+	 * @return Return Authentication provider 
 	 * @throws IOException
 	 */
 	public AuthenticationDetailsProvider getprovider() throws IOException {
@@ -70,7 +70,7 @@ public class OracleKeyVaultConnector {
 	/**
 	 * This method returns KeyShape.Algorithm
 	 * @param keyId: Key ID
-	 * @return
+	 * @return Return Key Sepc Type
 	 * @throws IOException
 	 */
 	private KeyShape.Algorithm getKeySpecType(String keyId) throws IOException {
@@ -86,7 +86,7 @@ public class OracleKeyVaultConnector {
 	/**
 	 * This method check Key is symmetric return true/false
 	 * @param keyId: Key ID
-	 * @return
+	 * @return Return boolean true/false
 	 * @throws IOException
 	 */
 	public boolean isSymmetricKey(String keyId) throws IOException {
@@ -99,7 +99,7 @@ public class OracleKeyVaultConnector {
 	/**
 	 * This method encrypt using RSA
 	 * @param message
-	 * @return
+	 * @return Return byte array
 	 * @throws IOException
 	 */
 	public byte[] encryptRSA(byte[] message) throws IOException {
@@ -143,7 +143,7 @@ public class OracleKeyVaultConnector {
 	/**
 	 * This method encrypt using AES
 	 * @param message
-	 * @return
+	 * @return Return encrpted in byte 
 	 * @throws IOException
 	 */
 	public byte[] encryptAES(byte[] message) throws IOException {
@@ -168,7 +168,7 @@ public class OracleKeyVaultConnector {
 	/**
 	 * This method decrypt using AES
 	 * @param message
-	 * @return
+	 * @return Return decrypted value in byte array
 	 * @throws IOException
 	 */
 	public byte[] decryptAES(byte[] message) throws IOException {
