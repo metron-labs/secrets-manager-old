@@ -44,6 +44,7 @@ public class JsonUtil {
 
 	/**
 	 * Check Json File Valid / Invalid
+	 * 
 	 * @param filePath The path to the JSON file
 	 * @return true if the file is valid JSON, false otherwise
 	 */
@@ -53,13 +54,13 @@ public class JsonUtil {
 			return jsonElement != null;
 		} catch (IOException | JsonSyntaxException e) {
 			logger.debug(e.getMessage());
-		} 
+		}
 		return false;
 	}
 
-
 	/**
 	 * Check Json content Valid / Invalid
+	 * 
 	 * @param jsonContent The JSON content as a string
 	 * @return true if the content is valid JSON, false otherwise
 	 */
@@ -74,22 +75,25 @@ public class JsonUtil {
 	}
 
 	/**
-	 *  Convert String to Map
+	 * Convert String to Map
+	 * 
 	 * @param content The JSON content as a string
 	 * @return a Map representing the JSON content
-	 * @throws JsonProcessingException Throws JsonProcessingException while converting string to map
+	 * @throws JsonProcessingException Throws JsonProcessingException while
+	 *                                 converting string to map
 	 */
 	public static Map<String, Object> convertToMap(String content) throws JsonProcessingException {
 		return objectMapper.readValue(content, new TypeReference<Map<String, Object>>() {
 		});
 	}
-	
 
 	/**
 	 * Convert Map to String
+	 * 
 	 * @param configMap The Map to be converted to JSON string
 	 * @return A JSON string representing the Map
-	 * @throws JsonProcessingException Throws JsonProcessingException while converting map to string
+	 * @throws JsonProcessingException Throws JsonProcessingException while
+	 *                                 converting map to string
 	 */
 	public static String convertToString(Map<String, Object> configMap) throws JsonProcessingException {
 		return objectMapper.writeValueAsString(configMap);

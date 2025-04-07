@@ -1,7 +1,8 @@
 package com.keepersecurity.secretmanager.oracle.kv;
 
 /**
- * The {@code Constants} class contains a collection of constant values used for cryptographic operations
+ * The {@code Constants} class contains a collection of constant values used for
+ * cryptographic operations
  * and configurations in the Oracle Key Vault integration.
  * 
  */
@@ -10,7 +11,9 @@ public class Constants {
 	/**
 	 * Private constructor to prevent instantiation of the class.
 	 */
-	private Constants(){}
+	private Constants() {
+	}
+
 	/**
 	 * Constant representing the RSA 2048-bit encryption algorithm.
 	 */
@@ -21,7 +24,7 @@ public class Constants {
 	public static final String RSA_4096 = "RSA_4096";
 	/**
 	 * Constant representing the default symmetric encryption algorithm.
-	 */		  
+	 */
 	public static final String SYMMETRIC_DEFAULT = "SYMMETRIC_DEFAULT";
 	/**
 	 * Constant representing the RSAES-OAEP encryption scheme with SHA-256 hashing.

@@ -14,10 +14,9 @@ package com.keepersecurity.secretmanager.oracle.kv;
 
 import com.oracle.bmc.Region;
 
-
-
 /**
- * The {@code OracleSessionConfig} class represents a configuration for an oracle session configuration,
+ * The {@code OracleSessionConfig} class represents a configuration for an
+ * oracle session configuration,
  * containing the oracle key vault id, region, key Id, version and end point.
  * 
  */
@@ -27,21 +26,23 @@ public class OracleSessionConfig {
 	private String vaultId;
 	private String keyId;
 	private String keyVersionId;
-	private String configPath ;
+	private String configPath;
 	private String managementEndpoint;
 	private Region region;
-	
+
 	/**
-	 * Constructor to initialize oracle key vault configuration 
-	 * @param configPath : configuration Path
-	 * @param cryptoEndpoint: oracle key vault cryptoEndpoint
+	 * Constructor to initialize oracle key vault configuration
+	 * 
+	 * @param configPath          : configuration Path
+	 * @param cryptoEndpoint:     oracle key vault cryptoEndpoint
 	 * @param managementEndpoint: managementEndpoint
-	 * @param vaultId: vaultId
-	 * @param keyId: keyId
-	 * @param keyVersionId: keyVersionId
-	 * @param region: region
+	 * @param vaultId:            vaultId
+	 * @param keyId:              keyId
+	 * @param keyVersionId:       keyVersionId
+	 * @param region:             region
 	 */
-	public OracleSessionConfig(String configPath, String cryptoEndpoint, String managementEndpoint, String vaultId, String keyId, String keyVersionId, Region region) {
+	public OracleSessionConfig(String configPath, String cryptoEndpoint, String managementEndpoint, String vaultId,
+			String keyId, String keyVersionId, Region region) {
 		super();
 		this.configPath = configPath;
 		this.cryptoEndpoint = cryptoEndpoint;
@@ -51,8 +52,10 @@ public class OracleSessionConfig {
 		this.managementEndpoint = managementEndpoint;
 		this.region = region;
 	}
+
 	/**
 	 * Returns the config path
+	 * 
 	 * @return The config path in string format
 	 */
 	public String getConfigPath() {
@@ -61,7 +64,8 @@ public class OracleSessionConfig {
 
 	/**
 	 * Set the config path
-	 * @param configPath: config path 
+	 * 
+	 * @param configPath: config path
 	 */
 	public void setConfigPath(String configPath) {
 		this.configPath = configPath;
@@ -69,6 +73,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Get the oracle Crypto Endpoint
+	 * 
 	 * @return cryptoEndpoint
 	 */
 	public String getCryptoEndpoint() {
@@ -77,6 +82,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Set oracle Crypto Endpoint
+	 * 
 	 * @param cryptoEndpoint: Crypto Endpoint
 	 */
 	public void setCryptoEndpoint(String cryptoEndpoint) {
@@ -85,6 +91,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Return vault ID
+	 * 
 	 * @return vaultId in string format
 	 */
 	public String getVaultId() {
@@ -93,6 +100,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Set oracle vault ID
+	 * 
 	 * @param vaultId: vault ID
 	 */
 	public void setVaultId(String vaultId) {
@@ -101,6 +109,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Return Key ID
+	 * 
 	 * @return keyId in string format
 	 */
 	public String getKeyId() {
@@ -109,6 +118,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Set Key ID
+	 * 
 	 * @param keyId: Key ID
 	 */
 	public void setKeyId(String keyId) {
@@ -117,6 +127,7 @@ public class OracleSessionConfig {
 
 	/**
 	 * Get Key Verion ID
+	 * 
 	 * @return keyVersionId in string format
 	 */
 	public String getKeyVersionId() {
@@ -125,35 +136,43 @@ public class OracleSessionConfig {
 
 	/**
 	 * Set Key Version ID
+	 * 
 	 * @param keyVersionId: Key VersionID
 	 */
 	public void setKeyVersionId(String keyVersionId) {
 		this.keyVersionId = keyVersionId;
 	}
-	
+
 	/**
-	 * Set Management Endpoint 
+	 * Set Management Endpoint
+	 * 
 	 * @param managementEndpoint: Management Endpoint
 	 */
 	public void setManagementEndpoint(String managementEndpoint) {
 		this.managementEndpoint = managementEndpoint;
 	}
+
 	/**
 	 * Get Management Endpoint
+	 * 
 	 * @return managementEndpoint in string format
 	 */
 	public String getManagementEndpoint() {
 		return managementEndpoint;
 	}
+
 	/**
 	 * Get Region
+	 * 
 	 * @return region in string format
 	 */
 	public Region getRegion() {
 		return region;
 	}
+
 	/**
 	 * Set Region
+	 * 
 	 * @param region: Region
 	 */
 	public void setRegion(Region region) {
