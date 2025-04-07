@@ -27,7 +27,8 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
 /**
- * Json utility class
+ * JsonUtil class is used to check Json file and content is valid or not
+ * Convert String to Map and Map to String
  */
 public class JsonUtil {
 
@@ -35,9 +36,16 @@ public class JsonUtil {
 	private static ObjectMapper objectMapper = new ObjectMapper();
 
 	/**
+	 * Private constructor to prevent instantiation of the class.
+	 */
+	private JsonUtil() {
+		// Private constructor to prevent instantiation
+	}
+
+	/**
 	 * Check Json File Valid / Invalid
-	 * @param filePath
-	 * @return
+	 * @param filePath The path to the JSON file
+	 * @return true if the file is valid JSON, false otherwise
 	 */
 	public static boolean isValidJsonFile(String filePath) {
 		try (FileReader reader = new FileReader(filePath)) {
@@ -52,8 +60,8 @@ public class JsonUtil {
 
 	/**
 	 * Check Json content Valid / Invalid
-	 * @param jsonContent
-	 * @return
+	 * @param jsonContent The JSON content as a string
+	 * @return true if the content is valid JSON, false otherwise
 	 */
 	public static boolean isValidJson(String jsonContent) {
 		try {
@@ -67,9 +75,9 @@ public class JsonUtil {
 
 	/**
 	 *  Convert String to Map
-	 * @param content
-	 * @return
-	 * @throws JsonProcessingException
+	 * @param content The JSON content as a string
+	 * @return a Map representing the JSON content
+	 * @throws JsonProcessingException Throws JsonProcessingException while converting string to map
 	 */
 	public static Map<String, Object> convertToMap(String content) throws JsonProcessingException {
 		return objectMapper.readValue(content, new TypeReference<Map<String, Object>>() {
@@ -79,9 +87,9 @@ public class JsonUtil {
 
 	/**
 	 * Convert Map to String
-	 * @param configMap
-	 * @return
-	 * @throws JsonProcessingException
+	 * @param configMap The Map to be converted to JSON string
+	 * @return A JSON string representing the Map
+	 * @throws JsonProcessingException Throws JsonProcessingException while converting map to string
 	 */
 	public static String convertToString(Map<String, Object> configMap) throws JsonProcessingException {
 		return objectMapper.writeValueAsString(configMap);

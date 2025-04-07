@@ -40,14 +40,25 @@ import com.oracle.bmc.keymanagement.responses.DecryptResponse;
 import com.oracle.bmc.keymanagement.responses.EncryptResponse;
 import com.oracle.bmc.keymanagement.responses.GetKeyResponse;
 
-
 /**
  * This class is used to connect to Oracle KeyVault
  */
 public class OracleKeyVaultConnector {
+	/**
+	 * Configuration object for the Oracle session.
+	 * This object holds the session-specific configuration required to establish
+	 * and manage a connection with the Oracle Key Vault.
+	 */
 	public OracleSessionConfig sessionConfig;
 	private String profile;
 
+	/**
+	 * Constructor to initialize OracleKeyVaultConnector
+	 * 
+	 * @param sessionconfig Configuration object for the Oracle session
+	 * @param profile       Profile name for the Oracle Configuration
+	 *                      `~/.oci/config`
+	 */
 	public OracleKeyVaultConnector(OracleSessionConfig sessionconfig, String profile) {
 		this.sessionConfig = sessionconfig;
 		this.profile = profile;
@@ -55,8 +66,9 @@ public class OracleKeyVaultConnector {
 
 	/**
 	 * This method return AuthenticationDetailsProvider
-	 * @return
-	 * @throws IOException
+	 * 
+	 * @return AuthenticationDetailsProvider
+	 * @throws IOException Throws IOException
 	 */
 	public AuthenticationDetailsProvider getprovider() throws IOException {
 		ConfigFile config = ConfigFileReader.parse(sessionConfig.getConfigPath());
@@ -69,6 +81,7 @@ public class OracleKeyVaultConnector {
 
 	/**
 	 * This method returns KeyShape.Algorithm
+	 * 
 	 * @param keyId: Key ID
 	 * @return
 	 * @throws IOException
@@ -85,9 +98,11 @@ public class OracleKeyVaultConnector {
 
 	/**
 	 * This method check Key is symmetric return true/false
+	 * 
 	 * @param keyId: Key ID
-	 * @return
-	 * @throws IOException
+	 * @return true if given keyId is Symmetric, else false
+	 * @throws IOException Throws IOException, if any error occurs while getting key
+	 *                     spec type
 	 */
 	public boolean isSymmetricKey(String keyId) throws IOException {
 		if (KeyShape.Algorithm.Aes.equals(getKeySpecType(keyId))) {
@@ -98,9 +113,11 @@ public class OracleKeyVaultConnector {
 
 	/**
 	 * This method encrypt using RSA
-	 * @param message
-	 * @return
-	 * @throws IOException
+	 * 
+	 * @param message Encrypt the message using asymmetric key
+	 * @return The encrypted message as a byte array.
+	 * @throws IOException Throws IOException, if any error occurs while encrypting
+	 *                     the message
 	 */
 	public byte[] encryptRSA(byte[] message) throws IOException {
 		ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
@@ -121,9 +138,11 @@ public class OracleKeyVaultConnector {
 
 	/**
 	 * This method decrypt using RSA
-	 * @param message
+	 * 
+	 * @param message Decrypt the message using asymmetric key
 	 * @return The decrypted configuration as a String.
-	 * @throws IOException
+	 * @throws IOException Throws IOException, if any error occurs while decrypting
+	 *                     the message
 	 */
 	public byte[] decryptRSA(byte[] message) throws IOException {
 		ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
@@ -142,9 +161,11 @@ public class OracleKeyVaultConnector {
 
 	/**
 	 * This method encrypt using AES
-	 * @param message
-	 * @return
-	 * @throws IOException
+	 * 
+	 * @param message Encrypt the message using symmetric key
+	 * @return The encrypted message as a byte array.
+	 * @throws IOException Throws IOException, if any error occurs while encrypting
+	 *                     the message
 	 */
 	public byte[] encryptAES(byte[] message) throws IOException {
 		ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
@@ -167,9 +188,11 @@ public class OracleKeyVaultConnector {
 
 	/**
 	 * This method decrypt using AES
-	 * @param message
-	 * @return
-	 * @throws IOException
+	 * 
+	 * @param message Decrypt the message using symmetric key
+	 * @return The decrypted configuration as a String.
+	 * @throws IOException Throws IOException, if any error occurs while decrypting
+	 *                     the message
 	 */
 	public byte[] decryptAES(byte[] message) throws IOException {
 		ClientConfiguration clientConfiguration = ClientConfiguration.builder().connectionTimeoutMillis(300000).build();
