@@ -20,7 +20,7 @@ Keeper Secrets Manager integrates with GCP KMS in order to provide protection fo
 
 The Secrets Manager GCP KSM module can be installed using pip
 
-> `pip install google-cloud-kms`
+> `pip3 install keeper-secrets-manager-storage`
 
 2. Configure GCP Connection
 
@@ -42,24 +42,25 @@ To do this, use GcpKmsKeyvalueStorage as your Secrets Manager storage in the Sec
 
 The storage will require a GCP Key ID, as well as the name of the Secrets Manager configuration file which will be encrypted by GCP KMS.
 ```
-    from storage.keeper_secrets_manager_storage.storage_gcp_kms import GCPKeyConfig, GCPKeyValueStorage,GCPKMSClientConfig
-    from core.keeper_secrets_manager_core import SecretsManager
+    from keeper_secrets_manager_storage.storage_gcp_kms import GCPKeyConfig, GCPKeyValueStorage,GCPKMSClientConfig
 
-    gcp_key_config_1 = GCPKeyConfig("key_resource_uri_1")
-    gcp_key_config_2 = GCPKeyConfig("key_resource_uri_2")
+    from keeper_secrets_manager_core import SecretsManager
 
-    gcp_session_config = GCPKMSClientConfig().create_client_from_credentials_file('<credentails_json_location>')
-    config_path = "<KSM_config_location>"
-    one_time_token = "US:kYKVGFJ2605-9UBF4VXd14AztMPXcxZ56zC9gr7O-Cw"
+    gcp_key_config_1 = GCPKeyConfig("<key_resource_uri_1>")
+    gcp_key_config_2 = GCPKeyConfig("<key_resource_uri_1>")
+
+    gcp_session_config = GCPKMSClientConfig().create_client_from_credentials_file('gcp_config.json')
+    config_path = "<ksm_config.json>"
+    one_time_token = "<token>"
 
     storage = GCPKeyValueStorage(config_path, gcp_key_config_2, gcp_session_config)
-    # storage.change_key(gcp_key_config_2) # if we want to change the key
-    secrets_manager = SecretsManager(config=storage)
+    storage.change_key(gcp_key_config_2) # if we want to change the key
+    secrets_manager = SecretsManager(token=one_time_token,config=storage)
     all_records = secrets_manager.get_secrets()
+    print(storage.decrypt_config(False))
 
     first_record = all_records[0]
-    first_record_password = next(field.value[0] for field in first_record.data.fields if field.type == 'bankAccount')
-    print(first_record_password)
+    print(first_record)
 ```
 
 You're ready to use the KSM integration 👍
