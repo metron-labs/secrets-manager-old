@@ -10,14 +10,21 @@
 
 import logging
 import traceback
+import os
+
+from .constants import SCOPES
 
 try:
     from google.cloud import kms
     from google.oauth2 import service_account
+    from google.auth.exceptions import RefreshError
+    from google.auth.transport.requests import Request
 except ImportError:
     logging.getLogger().error("Missing GCP import dependencies."
                  " To install missing packages run: \r\n"
                  "pip install --upgrade \"google-cloud-kms\"\r\n"
+                 "pip install --upgrade \"google-crc32c\"\r\n"
+                 "pip install --upgrade \"pycryptodome\"\r\n"
                  "pip install --upgrade \"google-auth\"\r\n")
     raise Exception(f"Missing import dependencies: google cloud kms and google oauth2. Additional details: {traceback.format_exc()}")
 
@@ -33,6 +40,7 @@ class GCPKMSClientConfig:
         to authenticate.
         """
         self.kms_client = None
+        self.credentials=None
 
     def create_client_from_credentials_file(self, credentials_key_file_path: str):
         """
@@ -42,8 +50,8 @@ class GCPKMSClientConfig:
                                           the service account credentials.
         :return: The GCPKMSClient instance with the new client.
         """
-        credentials = service_account.Credentials.from_service_account_file(credentials_key_file_path)
-        self.kms_client = kms.KeyManagementServiceClient(credentials=credentials)
+        self.credentials = service_account.Credentials.from_service_account_file(os.path.abspath(credentials_key_file_path),scopes =SCOPES)
+        self.kms_client = kms.KeyManagementServiceClient(credentials=self.credentials)
         return self
 
     def create_client_using_credentials(self, client_email: str, private_key: str):
@@ -54,12 +62,12 @@ class GCPKMSClientConfig:
         :param private_key: The private key corresponding to the service account.
         :return: The GCPKMSClient instance with the new client.
         """
-        credentials = service_account.Credentials.from_service_account_info({
+        self.credentials = service_account.Credentials.from_service_account_info({
             "type": "service_account",
             "client_email": client_email,
             "private_key": private_key,
         })
-        self.kms_client = kms.KeyManagementServiceClient(credentials=credentials)
+        self.kms_client = kms.KeyManagementServiceClient(credentials=self.credentials,scopes=SCOPES)
         return self
 
     def get_default_crypto_client(self):
@@ -74,3 +82,15 @@ class GCPKMSClientConfig:
         Returns the KMS client instance.
         """
         return self.kms_client
+
+    def getToken(self):
+        if self.credentials is None:
+            raise Exception("KMS client not initialized. Please call create_client_from_credentials_file or create_client_using_credentials first.")
+        try:
+            # If the token is expired or absent, refresh it
+            if not self.credentials.valid:
+                auth_request = Request()
+                self.credentials.refresh(auth_request)
+            return self.credentials.token
+        except RefreshError as e:
+            raise RuntimeError(f"Failed to retrieve access token: {e}")
