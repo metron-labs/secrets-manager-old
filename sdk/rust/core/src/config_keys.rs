@@ -19,16 +19,26 @@ use crate::custom_error::KSMRError;
 
 #[derive(Debug, Clone, Display, EnumString, Eq, PartialEq, Hash, serde::Deserialize, Serialize)]
 pub enum ConfigKeys {
+    #[serde(rename = "url")]
     KeyUrl, // base url for the Secrets Manager service
+    #[serde(rename = "clientId")]
     KeyClientId,
-    KeyClientKey, // The key that is used to identify the client before public key. This is token.
+    #[serde(rename = "clientKey")]
+    KeyClientKey, // The key that is used to identify the client before public key. This is token.   
+    #[serde(rename = "appKey")]
     KeyAppKey,    // The application key with which all secrets are encrypted
+    #[serde(rename = "appOwnerPublicKey")]
     KeyOwnerPublicKey, // The application owner public key, to create records
+    #[serde(rename = "privateKey")]
     KeyPrivateKey, // The client's private key
+    #[serde(rename = "serverPublicKeyId")]
     KeyServerPublicKeyId, // Which public key should be using?
 
+    #[serde(rename = "bat")]
     KeyBindingToken,
+    #[serde(rename = "bindingKey")]
     KeyBindingKey,
+    #[serde(rename = "hostname")]
     KeyHostname,
 }
 

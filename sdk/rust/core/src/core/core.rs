@@ -80,7 +80,7 @@ impl ClientOptions {
         }
     }
     /// This function is used to create client options when token is involved - for FileKeyValueStorage
-    pub fn new_client_options(token: String, config: KvStoreType) -> Self {
+    pub fn new_client_options_with_token(token: String, config: KvStoreType) -> Self {
         Self::new(
             token,
             config,
@@ -92,7 +92,7 @@ impl ClientOptions {
     }
 
     /// this function is used to create client options when token is not involved - for InMemoryKeyValueStorage
-    pub fn new_client_options_without_token(config: KvStoreType) -> Self {
+    pub fn new_client_options(config: KvStoreType) -> Self {
         Self::new(
             "".to_string(),
             config,
@@ -105,6 +105,10 @@ impl ClientOptions {
 
     pub fn set_cache(&mut self,  cache: KSMCache) {
         self.cache = cache;
+    }
+
+    pub fn set_log_level(&mut self, log_level: Level) {
+        self.log_level = log_level;
     }
 }
 
@@ -2162,7 +2166,7 @@ impl SecretsManager {
                 if !return_single {
                     return Err(KSMRError::NotationError("If the second [] is a dictionary key, the first [] needs to have any index.".to_string()));
                 };
-                let index2_value = index2.unwrap();
+                let index2_value = index2.clone().unwrap();
                 let index_2_is_digit = index2_value.parse::<i32>().is_ok();
                 if index_2_is_digit {
                     return Err(KSMRError::NotationError("The second [] can only by a key for the dictionary. It cannot be an index.".to_string()));
@@ -2279,8 +2283,15 @@ impl SecretsManager {
             };
             let mut arrayed_values: Vec<Vec<Value>> = Vec::new();
             for field in fields {
-                let arrayed_val = field.as_array().cloned().unwrap();
-                arrayed_values.push(arrayed_val);
+                match field.as_array() {
+                    Some(arr) => arrayed_values.push(arr.clone()),
+                    None => {
+                        return Err(KSMRError::NotationError(format!(
+                            "Field value for '{}' is not an array (corrupt or unexpected format).",
+                            parameter_value
+                        )));
+                    }
+                }
             }
             if arrayed_values.is_empty() || arrayed_values[0].is_empty() {
                 return Err(KSMRError::RecordDataError(format!(
@@ -2305,8 +2316,34 @@ impl SecretsManager {
             } else {
                 let values_parsed: Vec<String> = arrayed_values
                     .iter()
-                    .map(|value| value[0].as_str().unwrap().to_string())
-                    .collect();
+                    .flat_map(|value_array| {
+                        value_array.iter().map(|v| {
+                            if let Some(s) = v.as_str() {
+                                Ok(s.to_string())
+                            } else if let Some(obj) = v.as_object() {
+                                // If index2 (property) is specified, extract it
+                                if let Some(property) = index2.clone() {
+                                    if let Some(prop_val) = obj.get(&property) {
+                                        if let Some(s) = prop_val.as_str() {
+                                            Ok(s.to_string())
+                                        } else {
+                                            Ok(prop_val.to_string())
+                                        }
+                                    } else {
+                                        Err(KSMRError::NotationError(
+                                            format!("Property '{}' not found in field value object", property)
+                                        ))
+                                    }
+                                } else {
+                                    // No property specified, return JSON string
+                                    Ok(serde_json::to_string(obj).unwrap_or_default())
+                                }
+                            } else {
+                                Ok(v.to_string())
+                            }
+                        })
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
                 let joined_string = values_parsed.join(" , ");
                 if values_parsed.is_empty() {
                     ret.insert(field_type, "".to_string());
@@ -2739,275 +2776,226 @@ impl SecretsManager {
         Ok(vec![prefix, record, selector, footer])
     }
 
-    pub fn get_notation_result(&mut self, notation: String) -> Result<Vec<String>, KSMRError> {
-        let mut result = Vec::new();
-        let parsed = SecretsManager::parse_notation(&notation, false)
-            .map_err(|e| KSMRError::NotationError(e.to_string()))?;
+pub fn get_notation_result(&mut self, notation: String) -> Result<Vec<String>, KSMRError> {
+    let mut result = Vec::new();
+    let parsed = SecretsManager::parse_notation(&notation, false)
+        .map_err(|e| KSMRError::NotationError(e.to_string()))?;
 
-        if parsed.len() < 3 {
-            return Err(KSMRError::NotationError(format!(
-                "Invalid Notation -{}",
-                notation
-            )));
-        };
+    if parsed.len() < 3 {
+        return Err(KSMRError::NotationError(format!(
+            "Invalid Notation -{}",
+            notation
+        )));
+    }
 
-        if parsed[2].text.is_none() {
-            return Err(KSMRError::NotationError(format!(
-                "Keeper notation is invalid : {}",
-                notation
-            )));
-        }
-        let selector = parsed[2].text.clone().unwrap().0.clone();
-        if parsed[1].text.is_none() {
-            return Err(KSMRError::NotationError(format!(
-                "Keeper notation is invalid - missing UID/title {}.",
-                notation
-            )));
-        }
-        let record_token = parsed[1].text.clone().unwrap().0.clone();
-        let mut records = Vec::new();
-        let re = Regex::new(r"^[A-Za-z0-9_-]{22}$").unwrap();
-        if re.is_match(&record_token) {
-            let re_array = vec![record_token.clone()];
-            records = self.get_secrets(re_array)?;
-            if records.len() > 1 {
-                return Err(KSMRError::NotationError(format!(
-                    "found more than one record with same uid/title: {}",
-                    record_token
-                )));
-            }
-        };
+    let selector = parsed[2].text.clone().ok_or_else(|| {
+        KSMRError::NotationError(format!("Keeper notation is invalid : {}", notation))
+    })?.0;
+    let record_token = parsed[1].text.clone().ok_or_else(|| {
+        KSMRError::NotationError(format!(
+            "Keeper notation is invalid - missing UID/title {}.",
+            notation
+        ))
+    })?.0;
 
-        if records.is_empty() {
-            let secrets = self.get_secrets(vec![])?;
-            if !secrets.is_empty() {
-                records = secrets
-                    .iter()
-                    .filter(|secret| secret.title == record_token)
-                    .cloned()
-                    .collect()
-            }
-        }
+    // Find the record by UID or title
+    let mut records = Vec::new();
+    let re = Regex::new(r"^[A-Za-z0-9_-]{22}$").unwrap();
+    if re.is_match(&record_token) {
+        let re_array = vec![record_token.clone()];
+        records = self.get_secrets(re_array)?;
         if records.len() > 1 {
             return Err(KSMRError::NotationError(format!(
-                "Notation error -  multiple records matched {}",
+                "found more than one record with same uid/title: {}",
                 record_token
             )));
         }
-
-        if records.is_empty() {
-            return Err(KSMRError::NotationError(format!(
-                "Notation error -  No records matched {}",
-                record_token
-            )));
+    }
+    if records.is_empty() {
+        let secrets = self.get_secrets(vec![])?;
+        if !secrets.is_empty() {
+            records = secrets
+                .iter()
+                .filter(|secret| secret.title == record_token)
+                .cloned()
+                .collect();
         }
+    }
+    if records.len() > 1 {
+        return Err(KSMRError::NotationError(format!(
+            "Notation error -  multiple records matched {}",
+            record_token
+        )));
+    }
+    if records.is_empty() {
+        return Err(KSMRError::NotationError(format!(
+            "Notation error -  No records matched {}",
+            record_token
+        )));
+    }
+    let mut record = records[0].clone();
 
-        let record = records[0].clone();
-        let parameter: Option<String> = parsed[2].parameter.clone().map(|par| par.clone().0);
-        let index1: Option<String> = parsed[2].index1.clone().map(|ind| ind.clone().0);
-        let _index2: Option<String> = parsed[2].index2.clone().map(|ind| ind.clone().0);
+    let parameter: Option<String> = parsed[2].parameter.clone().map(|par| par.0);
+    let index1: Option<String> = parsed[2].index1.clone().map(|ind| ind.0);
+    let index2: Option<String> = parsed[2].index2.clone().map(|ind| ind.0);
 
-        if selector.to_lowercase().clone() == "type" {
+    match selector.to_lowercase().as_str() {
+        "type" => {
             if !record.record_type.is_empty() {
                 result.push(record.record_type);
             }
-        } else if selector.to_lowercase().clone() == "title" {
+        }
+        "title" => {
             if !record.title.is_empty() {
                 result.push(record.title);
             }
-        } else if selector.to_lowercase().clone() == "notes" {
-            let record_notes = record.record_dict.get("notes");
-            if let Some(note) = record_notes {
-                result.push(note.as_str().unwrap().to_string())
+        }
+        "notes" => {
+            if let Some(note) = record.record_dict.get("notes") {
+                if let Some(s) = note.as_str() {
+                    result.push(s.to_string());
+                }
             }
-        } else if selector.to_lowercase().clone() == "file" {
+        }
+        "file" => {
             if parameter.is_none() {
-                return Err(KSMRError::NotationError(format!("Notation error - Missing required parameter: filename or file UID for files in record '{record_token}'")));
+                return Err(KSMRError::NotationError(format!(
+                    "Notation error - Missing required parameter: filename or file UID for files in record '{record_token}'"
+                )));
             }
             if record.files.is_empty() {
                 return Err(KSMRError::NotationError(format!(
                     "Notation error - Record {record_token} has no file attachments."
                 )));
             }
-            let files_array: Vec<crate::dto::KeeperFile> = record.files.clone();
-            let mut files: Vec<crate::dto::KeeperFile> = files_array
-                .iter()
-                .filter(|file| {
-                    let parameter_value = parameter.clone().unwrap_or("".to_string());
-                    (file.name == parameter_value)
-                        || (file.title == parameter_value)
-                        || (file.uid == parameter_value)
-                })
-                .cloned()
+            let param = parameter.clone().unwrap_or_default();
+            let mut files: Vec<_> = record.files.iter_mut()
+                .filter(|file| file.name == param || file.title == param || file.uid == param)
                 .collect();
-            let parameter_value = parameter.clone().unwrap_or("".to_string());
             if files.len() > 1 {
-                return Err(KSMRError::NotationError(format!("Notation error - Record {record_token} has multiple files matching the search criteria '{parameter_value}'")));
+                return Err(KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has multiple files matching the search criteria '{param}'"
+                )));
             }
             if files.is_empty() {
-                return Err(KSMRError::NotationError(format!("Notation error - Record {record_token} has no files matching the search criteria '{parameter_value}'")));
+                return Err(KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has no files matching the search criteria '{param}'"
+                )));
             }
-            let contents = match files[0].get_file_data() {
-                Ok(val) => val.unwrap(),
-                Err(_) => {
-                    return Err(KSMRError::NotationError(format!(
-                        "Notation error - Record {record_token} has corrupted KeeperFile data."
-                    )))
-                }
-            };
+            let contents = files[0].get_file_data()
+                .map_err(|_| KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has corrupted KeeperFile data."
+                )))?
+                .ok_or_else(|| KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has corrupted KeeperFile data."
+                )))?;
             let text = CryptoUtils::bytes_to_url_safe_str(&contents);
             result.push(text);
-        } else if ["field".to_string(), "custom_field".to_string()]
-            .iter()
-            .any(|s| s.eq_ignore_ascii_case(selector.to_lowercase().as_str()))
-        {
-            if parameter.is_none() {
-                return Err(KSMRError::NotationError("Notation error - Missing required parameter for the field (type or label): ex. /field/type or /custom_field/MyLabel.".to_string()));
-            }
-            let parameter_value = parameter.clone().unwrap();
+        }
+        "field" | "custom_field" => {
+            let parameter_value = parameter.clone().ok_or_else(|| {
+                KSMRError::NotationError("Notation error - Missing required parameter for the field (type or label): ex. /field/type or /custom_field/MyLabel.".to_string())
+            })?;
 
+            // Find the field in the record
             let fields_option = record.record_dict.get("fields");
             let fields = match fields_option {
-                Some(val) => match val.is_array() {
-                    true => val.as_array().unwrap(),
-                    false => &Vec::new(),
-                },
-                None => &Vec::new(),
+                Some(val) if val.is_array() => val.as_array().unwrap(),
+                _ => &Vec::new(),
             };
 
             let fields_filtered: Vec<serde_json::Value> = fields
                 .iter()
-                .filter(|field| match field.is_object() {
-                    true => {
-                        let field_obj = field.as_object().unwrap();
-                        let type_value = match field_obj.get("type") {
-                            Some(val) => match val.is_string() {
-                                true => val.as_str().unwrap().to_string(),
-                                false => "some_non_existing_value".to_string(),
-                            },
-                            None => "some_non_existing_type".to_string(),
-                        };
-                        let label_value = match field_obj.get("label") {
-                            Some(val) => match val.is_string() {
-                                true => val.as_str().unwrap().to_string(),
-                                false => "some_non_existing_value".to_string(),
-                            },
-                            None => "some_non_existing_label".to_string(),
-                        };
+                .filter(|field| {
+                    if let Some(field_obj) = field.as_object() {
+                        let type_value = field_obj.get("type")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("some_non_existing_type");
+                        let label_value = field_obj.get("label")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("some_non_existing_label");
                         parameter_value == type_value || parameter_value == label_value
+                    } else {
+                        false
                     }
-                    false => false,
                 })
                 .cloned()
                 .collect();
 
             if fields_filtered.len() > 1 {
-                return Err(KSMRError::NotationError(format!("Notation error - Record {record_token} has multiple fields matching the search criteria '{parameter_value}'")));
+                return Err(KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has multiple fields matching the search criteria '{parameter_value}'"
+                )));
             }
             if fields_filtered.is_empty() {
-                return Err(KSMRError::NotationError(format!("Notation error - Record {record_token} has no fields matching the search criteria '{parameter_value}'")));
+                return Err(KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has no fields matching the search criteria '{parameter_value}'"
+                )));
             }
 
             let field = fields_filtered[0].clone();
-            let _field_type = match field.get("type") {
-                Some(val) => match val.is_string() {
-                    true => val.as_str().unwrap().to_string(),
-                    false => "".to_string(),
-                },
-                None => "".to_string(),
+            let values: Vec<Value> = field.get("value")
+                .and_then(|v| v.as_array().cloned())
+                .unwrap_or_else(|| vec![]);
+
+            // Handle index1 (array index)
+            let idx = index1.as_ref()
+                .and_then(|s| s.parse::<usize>().ok())
+                .unwrap_or(usize::MAX);
+
+            // If index1 is specified and valid, get that value, else get all
+            let selected_values: Vec<&Value> = if idx != usize::MAX {
+                if idx < values.len() {
+                    vec![&values[idx]]
+                } else {
+                    return Err(KSMRError::NotationError(format!(
+                        "idx out of range: {} for field {}",
+                        idx, parameter_value
+                    )));
+                }
+            } else {
+                values.iter().collect()
             };
 
-            let idx = match index1 {
-                Some(val) => match val.parse::<isize>() {
-                    Ok(num) => num,
-                    Err(_) => {
-                        // Handle the error, for example:
+            // Handle index2 (object property)
+            let property = index2.clone().unwrap_or_default();
+
+            for val in selected_values {
+                if !property.is_empty() {
+                    if let Some(obj) = val.as_object() {
+                        if let Some(prop_val) = obj.get(&property) {
+                            if let Some(s) = prop_val.as_str() {
+                                result.push(s.to_string());
+                            } else {
+                                result.push(prop_val.to_string());
+                            }
+                        } else {
+                            return Err(KSMRError::NotationError(format!(
+                                "Property '{}' not found in field value object", property
+                            )));
+                        }
+                    } else {
                         return Err(KSMRError::NotationError(format!(
-                            "Invalid index value: {}",
-                            val
+                            "Field value is not an object, cannot extract property '{}'", property
                         )));
                     }
-                },
-                None => -1,
-            };
-
-            let mut _values = Vec::new();
-            _values = field.get("value").unwrap().as_array().unwrap().clone();
-            if idx >= _values.len() as isize {
-                return Err(KSMRError::NotationError(format!(
-                    "idx out of range: {} for field {}",
-                    idx, parameter_value
-                )));
-            }
-            if idx >= 0 {
-                let val = _values[idx as usize].clone();
-                match val.is_array() {
-                    true => _values[idx as usize].clone().as_array().unwrap(),
-                    false => todo!(),
-                };
-            }
-
-            let val1 = parsed[2].index2.clone().is_none();
-            let val2 = parsed[2].index2.clone().unwrap().1.clone() == "\"\"";
-            let val3 = parsed[2].index2.clone().unwrap().1.clone() == "\"[]\"";
-            let full_obj_val = val1 || val2 || val3;
-
-            let index_2_value = parsed[2].index2.clone();
-            let obj_property_name = match index_2_value {
-                Some(val) => val.0.clone(),
-                None => "".to_string(),
-            };
-
-            let mut res: Vec<String> = Vec::new();
-
-            for field_value in _values.clone() {
-                if field.is_null() {
-                    error!("Notation error - Empty field value for field '{parameter_value}'");
-                }
-                if full_obj_val {
-                    let v = match field_value.is_string() {
-                        true => field_value.as_str().unwrap().to_string(),
-                        false => serde_json::to_string(&field_value.as_str().unwrap().to_string())
-                            .unwrap(),
-                    };
-                    res.push(v);
-                } else if field_value.is_object() {
-                    let field_val_obj = field_value.as_object().unwrap();
-                    let key_presence = field_val_obj.contains_key(&obj_property_name);
-                    if key_presence {
-                        let property_option = field_val_obj.get(&obj_property_name);
-                        let property = match property_option {
-                            Some(prop) => prop,
-                            None => &Value::Null,
-                        };
-                        let v = match property.is_string() {
-                            true => property.as_str().unwrap().to_string(),
-                            false => serde_json::to_string(&property.as_str().unwrap().to_string())
-                                .unwrap(),
-                        };
-                        res.push(v);
-                    } else {
-                        error!("Notation error - Object property '{obj_property_name}'");
-                    }
+                } else if let Some(s) = val.as_str() {
+                    result.push(s.to_string());
                 } else {
-                    error!("Notation error - Cannot extract property '{obj_property_name}' from null value.");
+                    // If not a string, serialize to string
+                    result.push(val.to_string());
                 }
             }
-
-            if res.len() == _values.len() {
-                error!("Notation error - Cannot extract property '{obj_property_name}' from null value.");
-            }
-            if !res.is_empty() {
-                result.extend_from_slice(&res);
-            }
-        } else {
+        }
+        _ => {
             return Err(KSMRError::NotationError(format!(
                 "Notation error - Invalid notation: {}",
                 notation
             )));
         }
-        Ok(result)
     }
+    Ok(result)
+}
 
     pub fn inflate_field_value(
         &mut self,
