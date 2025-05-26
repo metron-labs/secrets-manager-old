@@ -42,7 +42,7 @@ use crate::dto::{
     KsmHttpResponse, Payload, QueryOptions, Record, SecretsManagerResponse, TransmissionKey,
     UpdateFolderPayload, UpdatePayload, UpdateTransactionType,
 };
-use crate::helpers::{get_folder_key, get_servers};
+use crate::helpers::{get_servers};
 use crate::keeper_globals::KEEPER_SECRETS_MANAGER_SDK_CLIENT_ID;
 use crate::utils::{base64_to_bytes, bytes_to_base64, json_to_dict, string_to_bytes};
 use log::{debug, error, info, warn};
@@ -1972,30 +1972,65 @@ impl SecretsManager {
         Ok(result)
     }
 
-    pub fn create_secret(
-        &mut self,
-        parent_folder_uid: String,
-        record_create_object: RecordCreate,
-    ) -> Result<String, KSMRError> {
-        let record_json_str = record_create_object.to_json()?;
-        let records_and_folders_response = self.get_secrets_full_response(Vec::new())?;
+pub fn create_secret(
+    &mut self,
+    parent_folder_uid: String,
+    record_create_object: RecordCreate,
+) -> Result<String, KSMRError> {
+    let record_json_str = record_create_object.to_json()?;
 
-        let found_folder = match get_folder_key(parent_folder_uid.clone(), records_and_folders_response){
-            Some(found_folder) => found_folder,
-            None => return Err(KSMRError::SecretManagerCreationError(format!("Folder uid= '{}' was not retrieved. If you are creating a record to a folder folder that you know exists, make sure that at least one record is present in the prior to adding a record to the folder.",parent_folder_uid))),
-        };
-        let create_options = CreateOptions::new(parent_folder_uid.clone(), None);
+    let folders = self.clone().get_folders()?;
+    
 
-        let payload = self.prepare_create_secret_payload(
-            self.config.clone(),
-            create_options,
-            record_json_str,
-            found_folder,
-        )?;
+    let mut parent_uid = parent_folder_uid.clone();
+    let mut sub_folder_uid: Option<String> = None;
+    let mut shared_folder: Option<&KeeperFolder> = None;
 
-        self.post_query("create_secret".to_string(), &payload)?;
-        Ok(payload.record_uid.clone())
+    loop {
+        let current_folder = folders.iter().find(|f| f.folder_uid == parent_uid);
+        match current_folder {
+            Some(folder) => {
+                if folder.parent_uid.is_empty() {
+                    shared_folder = Some(folder);
+                    break;
+                } else {
+                    sub_folder_uid = Some(parent_uid.clone());
+                    parent_uid = folder.parent_uid.clone();
+                }
+            }
+            None => break, 
+        }
     }
+
+    let shared_folder = match shared_folder {
+        Some(folder) => folder,
+        None => {
+            return Err(KSMRError::SecretManagerCreationError(format!(
+                "Could not find a shared folder in the ancestry of folder uid '{}'.",
+                parent_folder_uid
+            )))
+        }
+    };
+
+    if shared_folder.folder_key.is_empty() {
+        return Err(KSMRError::SecretManagerCreationError(format!(
+            "Shared folder key for '{}' is empty.",
+            shared_folder.folder_uid
+        )));
+    }
+
+    let create_options = CreateOptions::new(shared_folder.folder_uid.clone(), sub_folder_uid);
+
+    let payload = self.prepare_create_secret_payload(
+        self.config.clone(),
+        create_options,
+        record_json_str,
+        shared_folder.folder_key.clone(),
+    )?;
+
+    self.post_query("create_secret".to_string(), &payload)?;
+    Ok(payload.record_uid.clone())
+}
 
     fn prepare_create_secret_payload(
         &mut self,
@@ -2810,20 +2845,6 @@ pub fn get_notation_result(&mut self, notation: String) -> Result<Vec<String>, K
         Ok(value)
     }
 
-    fn inflate_ref_types() -> HashMap<String, Vec<String>> {
-        let mut map = HashMap::new();
-        map.insert("addressRef".to_string(), vec!["address".to_string()]);
-        map.insert(
-            "cardRef".to_string(),
-            vec![
-                "paymentCard".to_string(),
-                "text".to_string(),
-                "pinCode".to_string(),
-                "addressRef".to_string(),
-            ],
-        );
-        map
-    }
 }
 
 #[derive(Debug, Default)]

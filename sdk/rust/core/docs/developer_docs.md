@@ -15,8 +15,6 @@ Find the Rust source code in the [GitHub repository](https://github.com/Keeper-S
 
 ##### Note : 
 
-` This crate needs openssl to run. We need perl installed on the machine to have open ssl build directly instead of installing it seperately `
-
 Using a token only to generate a new configuration (for later usage) requires at least one read operation to bind the token and fully populate the `test.json`
 
 **Secrets Manager**
@@ -26,7 +24,7 @@ Using a token only to generate a new configuration (for later usage) requires at
 **Example Usage**
 ``` rust
     use keeper_secrets_manager_core::{ClientOptions, SecretsManager,storage::FileKeyValueStorage}
-    let client_options = ClientOptions::new_client_options(token, config);
+    let client_options = ClientOptions::new_client_options_with_token(token, config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 ```
 
@@ -49,14 +47,14 @@ Using a token only to generate a new configuration (for later usage) requires at
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
 
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get all records
@@ -73,14 +71,14 @@ Using a token only to generate a new configuration (for later usage) requires at
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
 
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     let uids = vec!["record_1_uid".to_string(), "record_2_uid".to_string()];
@@ -118,13 +116,13 @@ This shortcut gets the password of a secret once that secret has been retrieved 
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by record UID
@@ -155,7 +153,7 @@ This shortcut gets the password of a secret once that secret has been retrieved 
     // setup secrets manager
     let token = "your_token_goes_here".to_string();
     let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let client_options = ClientOptions::new_client_options_with_token(token, config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by record UID
@@ -191,13 +189,13 @@ This shortcut gets the password of a secret once that secret has been retrieved 
 ```rust  
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by record UID
@@ -234,13 +232,13 @@ the value or values of the field.  It will be a single value only if the `singl
 ``` rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get all secrets matching the record title
@@ -270,13 +268,13 @@ the value or values of the field.  It will be a single value only if the `singl
 
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get all secrets matching the notation
@@ -311,13 +309,13 @@ Get TOTP Code of given record
 
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get TOTP url value from a record
@@ -353,13 +351,13 @@ Get TOTP Code of given record
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by UID
@@ -395,13 +393,13 @@ For a list of field types, see the [Record Types](https://docs.keeper.io/en/secr
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by UID
@@ -437,13 +435,13 @@ for a list of field types, see the [Record Types](https://docs.keeper.io/en/secr
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by UID
@@ -474,13 +472,13 @@ Generate Password
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by UID
@@ -528,13 +526,13 @@ Download File
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by UID
@@ -561,13 +559,13 @@ Example
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get a specific secret by UID
@@ -627,15 +625,15 @@ The file UID of the attached file
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         dto::{dtos::RecordCreate, field_structs::RecordField}
     };
     use serde_json::{self, json, Number, Value};
 
     // setup secrets manager
-    let token = "Token".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test_demo.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // This is how we create a Record
@@ -718,13 +716,13 @@ Delete Secret
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // delete a specific secret by UID
@@ -756,7 +754,7 @@ fn main(){
 
     let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
     
-    let mut client_options = ClientOptions::new_client_options(token, file_name);
+    let mut client_options = ClientOptions::new_client_options_with_token(token, file_name);
     client_options.set_cache(cache.into()); 
     
     let mut secrets_manager = SecretsManager::new(client_options)?;  
@@ -788,13 +786,13 @@ Downloads full folder hierarchy.
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     // get all folder
@@ -820,13 +818,13 @@ Requires `CreateOptions` and folder name to be provided. The folder UID paramete
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     let parent_folder_uid: String = "Yi_OxwTV2tdBWi-_Aegs_w".to_string();
@@ -855,16 +853,16 @@ Updates the folder metadata—currently folder name only.
 ```rust
     use keeper_secrets_manager_core::{
         core::{ClientOptions, SecretsManager},
-        storage::FileKeyValueStorage,
+        storage::InMemoryKeyValueStorage,
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
-    let update_folder = secrets_manager_4.update_folder("<folder_uid>".to_string(),"dummy_updated_API_RUST".to_string(),Vec::new())?;
+    let update_folder = secrets_manager.update_folder("<folder_uid>".to_string(),"dummy_updated_API_RUST".to_string(),Vec::new())?;
     println!("{}",(serde_json::to_string_pretty(&update_folder)?));
 ```
 
@@ -892,9 +890,9 @@ Example Usage
         custom_error::KSMRError
     };
     // setup secrets manager
-    let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
-    let client_options = ClientOptions::new_client_options(token, config);
+    let config_string = "your_base64_goes_here".to_string();
+    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
     let folder_uids = vec!["RVP2YCVnjzQttOsE6X8zGQ".to_string(),"Yi_OxwTV2tdBWi-_Aegs_w".to_string()];
