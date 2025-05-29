@@ -705,7 +705,7 @@ mod set_config_mode_tests {
         File::create(file_path).expect("Failed to create test file");
 
         // Execute the function to set Unix permissions
-        let result = set_config_mode(file_path, None);
+        let result = set_config_mode(file_path);
 
         // Assert that the function completed successfully
         assert!(result.is_ok());
@@ -734,7 +734,7 @@ mod set_config_mode_tests {
         File::create(file_path).expect("Failed to create test file");
 
         // Call the function and expect it to return Ok immediately
-        let result = set_config_mode(file_path, None);
+        let result = set_config_mode(file_path);
         assert!(result.is_ok());
 
         // Clean up

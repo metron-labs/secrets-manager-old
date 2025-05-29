@@ -812,7 +812,6 @@ fn _default_command() -> Output {
     }
 }
 
-#[allow(clippy::needless_doctest_main)]
 /**
 Sets the configuration mode for the specified file, adjusting its permissions
 according to the operating system's conventions. On Windows, it uses `icacls`
@@ -821,55 +820,15 @@ to set file permissions, while on Linux/MacOS, it sets the permissions to 0600.
 # Arguments
 
 * `file` - A string slice that holds the path to the configuration file.
-* `logger` - An optional reference to an `env_logger::Logger` for logging messages.
 
 # Returns
 
 This function returns `Ok(())` if the mode is set successfully, or an `io::Error`
 if an error occurs.
 
-# Example
-
-```rust
-use log::{info, error};
-use env_logger;
-use std::fs::File;
-use std::io;
-use std::env;
-use keeper_secrets_manager_core::utils::set_config_mode;
-
-fn main() {
-    // Initialize the logger
-    env_logger::init();
-
-    // Specify the path to the configuration file
-    // let config_file = "path/to/config/file";
-    let c = env::current_dir().expect("is not a valid path").to_string_lossy().to_string();
-    let config_file = "./src/dummy1/dummy2/test.json";
-    // Create the configuration file for demonstration purposes
-    let created_file = File::create(config_file);
-    match created_file {
-        Ok(file) => {
-            info!("Configuration file created successfully at {}", config_file);
-        }
-        Err(e) => {
-            error!("Failed to create configuration file: {}", e);
-            return;
-        }
-    }
-    // Set the configuration mode
-    if let Err(e) = set_config_mode(config_file, None) {
-        error!("Failed to set config mode: {}", e);
-    } else {
-        info!("Configuration mode set successfully for {}", config_file);
-    }
-}
-```
-
 */
 pub fn set_config_mode(
     file: &str,
-    _windows_logger: Option<&env_logger::Logger>,
 ) -> Result<(), io::Error> {
     // Check if we should skip setting the mode
     if let Ok(skip_mode) = env::var("KSM_CONFIG_SKIP_MODE") {
@@ -901,9 +860,6 @@ pub fn set_config_mode(
         ];
 
         for command in commands {
-            if let Some(_logger) = _windows_logger {
-                debug!("{} {}", "Set Mode Command: {}", command);
-            }
 
             let output = Command::new("cmd").args(&["/C", &command]).output()?;
 
@@ -921,9 +877,7 @@ pub fn set_config_mode(
                     ))
                 }
                 Some(1332) => {
-                    if let Some(_logger) = _windows_logger {
-                        debug!("{} {}", "Failed to set some ACL permissions: {}", command);
-                    }
+                    debug!("{} {}", "Failed to set some ACL permissions: {}", command);
                     continue; // Skip localized group/user names error
                 }
                 Some(_) if !output.status.success() => {

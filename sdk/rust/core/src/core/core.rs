@@ -42,15 +42,13 @@ use crate::dto::{
     KsmHttpResponse, Payload, QueryOptions, Record, SecretsManagerResponse, TransmissionKey,
     UpdateFolderPayload, UpdatePayload, UpdateTransactionType,
 };
-use crate::helpers::{get_servers};
+use crate::helpers::get_servers;
 use crate::keeper_globals::KEEPER_SECRETS_MANAGER_SDK_CLIENT_ID;
 use crate::utils::{base64_to_bytes, bytes_to_base64, json_to_dict, string_to_bytes};
 use log::{debug, error, info, warn};
 use regex::Regex;
 use reqwest::header;
 use serde_json::Value;
-
-use crate::enums::{LogLevel, SecretsManagerLogger};
 
 pub struct ClientOptions {
     pub token: String,
@@ -103,7 +101,7 @@ impl ClientOptions {
         )
     }
 
-    pub fn set_cache(&mut self,  cache: KSMCache) {
+    pub fn set_cache(&mut self, cache: KSMCache) {
         self.cache = cache;
     }
 
@@ -122,7 +120,6 @@ pub struct SecretsManager {
     pub config: KvStoreType,
     pub log_level: Level,
     pub cache: KSMCache,
-    pub logger: SecretsManagerLogger,
 }
 
 impl Clone for SecretsManager {
@@ -135,7 +132,6 @@ impl Clone for SecretsManager {
             config: self.config.clone(),
             log_level: self.log_level,
             cache: self.cache.clone(),
-            logger: self.logger.clone(),
         }
     }
 }
@@ -149,18 +145,7 @@ impl SecretsManager {
             config: KvStoreType::None,
             log_level: Level::Info, // Default to Info if not provided
             cache: KSMCache::None,  // Default is no cache
-            logger: SecretsManagerLogger::default(), // Default logger
         };
-
-        let init_logger_result = Self::init_logger(Some(client_options.log_level));
-        match init_logger_result {
-            Ok(_) => {
-                secrets_manager.logger = init_logger_result.unwrap();
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
 
         let mut config = client_options.config;
         if matches!(config, KvStoreType::None) {
@@ -246,33 +231,28 @@ impl SecretsManager {
                 .unwrap();
         }
 
-        secrets_manager
-            .logger
-            .log_info("Initializing SecretsManager and values are set");
+        info!("Initializing SecretsManager and values are set");
 
         if config.get(ConfigKeys::KeyServerPublicKeyId).is_ok() {
             let server_public_key_id: Option<String> =
                 config.get(ConfigKeys::KeyServerPublicKeyId).unwrap();
             let keeper_public_keys = get_keeper_public_keys();
             if server_public_key_id.is_none() {
-                secrets_manager.logger.log_debug(&format!(
-                    "Setting public key id to the default: {}",
-                    DEFAULT_KEY_ID
-                ));
+                debug!("Setting public key id to the default: {}", DEFAULT_KEY_ID);
                 config
                     .set(ConfigKeys::KeyServerPublicKeyId, DEFAULT_KEY_ID.to_string())
                     .unwrap();
             } else if server_public_key_id.is_some()
                 && !keeper_public_keys.contains_key(server_public_key_id.unwrap().as_str())
             {
-                secrets_manager.logger.log_debug(&format!(
+                debug!(
                     "Public key id {} does not exists, set to default : {}",
                     config
                         .get(ConfigKeys::KeyServerPublicKeyId)
                         .unwrap()
                         .unwrap(),
                     DEFAULT_KEY_ID
-                ));
+                );
                 config
                     .set(ConfigKeys::KeyServerPublicKeyId, DEFAULT_KEY_ID.to_string())
                     .unwrap();
@@ -290,38 +270,9 @@ impl SecretsManager {
         }
     }
 
-    fn init_logger(log_level: Option<Level>) -> Result<SecretsManagerLogger, KSMRError> {
-        let log_level = match log_level {
-            Some(Level::Error) => LogLevel::ERROR,
-            Some(Level::Warn) => LogLevel::WARNING,
-            Some(Level::Info) => LogLevel::INFO,
-            Some(Level::Debug) => LogLevel::DEBUG,
-            Some(Level::Trace) => LogLevel::INFO,
-            None if env::var("RUST_LOG").is_ok() => {
-                let log_level = env::var("RUST_LOG").unwrap();
-                match log_level.as_str() {
-                    "ERROR" => LogLevel::ERROR,
-                    "WARNING" => LogLevel::WARNING,
-                    "INFO" => LogLevel::INFO,
-                    "DEBUG" => LogLevel::DEBUG,
-                    "TRACE" => LogLevel::INFO,
-                    _ => {
-                        return Err(KSMRError::InvalidLogLevel(
-                            "Unknown log level provided".to_string(),
-                        ))
-                    }
-                }
-            }
-            _ => LogLevel::INFO,
-        };
-
-        let logger = SecretsManagerLogger::new(log_level);
-        Ok(logger)
-    }
-
     fn _init(&mut self) -> Result<Self, KSMRError> {
         if !self.verify_ssl_certs {
-            self.logger.log_debug("WARNING: Running without SSL cert verification. Execute 'SecretsManager(..., verify_ssl_certs=True)' or 'KSM_SKIP_VERIFY=FALSE' to enable verification.");
+            debug!("WARNING: Running without SSL cert verification. Execute 'SecretsManager(..., verify_ssl_certs=True)' or 'KSM_SKIP_VERIFY=FALSE' to enable verification.");
         }
 
         let client_id = self.config.get(ConfigKeys::KeyClientId).map_err(|e| {
@@ -364,27 +315,23 @@ impl SecretsManager {
                             let app_key = self.config.get(ConfigKeys::KeyAppKey).unwrap();
                             if app_key.is_some() {
                                 unbound_token = false;
-                                self.logger.log_warn(
-                                    "the storage is already initiated with the same token",
-                                );
+                                warn!("the storage is already initiated with the same token",);
                             } else {
-                                self.logger
-                                    .log_warn("the storage is already initiated but not bound");
+                                warn!("the storage is already initiated but not bound");
                             }
                         } else {
                             return Err(KSMRError::SecretManagerCreationError(format!("The provided token does not match the client id and is initiated with a different token - client ID: {}", client_id)));
                         }
                     }
                     None => {
-                        self.logger
-                            .log_warn("the storage is already initiated but not bound");
+                        warn!("the storage is already initiated but not bound");
                     }
                 }
             }
         }
 
         if !(client_id_empty_state || unbound_token) {
-            self.logger.log_debug("Already bound to the token");
+            debug!("Already bound to the token");
 
             if self.config.get(ConfigKeys::KeyClientKey).unwrap().is_none() {
                 let _ = self.config.delete(ConfigKeys::KeyClientKey).map_err(|er| {
@@ -501,20 +448,18 @@ impl SecretsManager {
 
         if !env_secret_key.is_empty() {
             current_secret_key = env_secret_key;
-            self.logger
-                .log_info("Secret key found in environment variable");
+            info!("Secret key found in environment variable");
         }
 
         if current_secret_key.is_empty() && !self.token.is_empty() {
             current_secret_key = self.token.clone();
-            self.logger.log_info("Secret key found in config");
+            info!("Secret key found in config");
         }
 
         if current_secret_key.is_empty() {
             let config_secret_key = self.config.get(ConfigKeys::KeyClientKey)?;
             current_secret_key = config_secret_key.unwrap().clone();
-            self.logger
-                .log_info("Secret key found in configuration file");
+            info!("Secret key found in configuration file");
         }
 
         Ok(current_secret_key)
@@ -1056,12 +1001,9 @@ impl SecretsManager {
             }
         }
 
-        self.logger
-            .log_debug(format!("Individual records: {}", records_count).as_str());
-        self.logger
-            .log_debug(format!("Shared folders: {}", shared_folders_count).as_str());
-        self.logger
-            .log_debug(format!("total count: {}", records_count + shared_folders_count).as_str());
+        debug!("Individual records: {}", records_count);
+        debug!("Shared folders: {}", shared_folders_count);
+        debug!("total count: {}", records_count + shared_folders_count);
 
         if decrypted_response_dict.contains_key("appData") {
             let app_data_str = CryptoUtils::url_safe_str_to_bytes(
@@ -1723,21 +1665,15 @@ impl SecretsManager {
         owner_record: Record,
         file: KeeperFileUpload,
     ) -> Result<String, KSMRError> {
-        self.logger.log_info(
-            format!(
-                "uploading file: {} to record with UID: {}",
-                file.name, owner_record.uid
-            )
-            .as_str(),
+        info!(
+            "uploading file: {} to record with UID: {}",
+            file.name, owner_record.uid
         );
-        self.logger.log_debug(
-            format!(
+        debug!(
                 "preparing upload payload. owner_record.uid=[{}], fine name: {}, file_size: {}",
                 owner_record.uid,
                 file.name,
                 file.data.len()
-            )
-            .as_str(),
         );
 
         let upload_payload =
@@ -1745,7 +1681,7 @@ impl SecretsManager {
         let payload = upload_payload.get_payload();
         let encrypted_file_data = upload_payload.get_encrypted_data();
 
-        self.logger.log_debug("posting prepare data");
+        debug!("posting prepare data");
 
         let response_data = self.post_query("add_file".to_string(), &payload)?;
 
@@ -1972,65 +1908,64 @@ impl SecretsManager {
         Ok(result)
     }
 
-pub fn create_secret(
-    &mut self,
-    parent_folder_uid: String,
-    record_create_object: RecordCreate,
-) -> Result<String, KSMRError> {
-    let record_json_str = record_create_object.to_json()?;
+    pub fn create_secret(
+        &mut self,
+        parent_folder_uid: String,
+        record_create_object: RecordCreate,
+    ) -> Result<String, KSMRError> {
+        let record_json_str = record_create_object.to_json()?;
 
-    let folders = self.clone().get_folders()?;
-    
+        let folders = self.clone().get_folders()?;
 
-    let mut parent_uid = parent_folder_uid.clone();
-    let mut sub_folder_uid: Option<String> = None;
-    let mut shared_folder: Option<&KeeperFolder> = None;
+        let mut parent_uid = parent_folder_uid.clone();
+        let mut sub_folder_uid: Option<String> = None;
+        let mut shared_folder: Option<&KeeperFolder> = None;
 
-    loop {
-        let current_folder = folders.iter().find(|f| f.folder_uid == parent_uid);
-        match current_folder {
-            Some(folder) => {
-                if folder.parent_uid.is_empty() {
-                    shared_folder = Some(folder);
-                    break;
-                } else {
-                    sub_folder_uid = Some(parent_uid.clone());
-                    parent_uid = folder.parent_uid.clone();
+        loop {
+            let current_folder = folders.iter().find(|f| f.folder_uid == parent_uid);
+            match current_folder {
+                Some(folder) => {
+                    if folder.parent_uid.is_empty() {
+                        shared_folder = Some(folder);
+                        break;
+                    } else {
+                        sub_folder_uid = Some(parent_uid.clone());
+                        parent_uid = folder.parent_uid.clone();
+                    }
                 }
+                None => break,
             }
-            None => break, 
         }
-    }
 
-    let shared_folder = match shared_folder {
-        Some(folder) => folder,
-        None => {
+        let shared_folder = match shared_folder {
+            Some(folder) => folder,
+            None => {
+                return Err(KSMRError::SecretManagerCreationError(format!(
+                    "Could not find a shared folder in the ancestry of folder uid '{}'.",
+                    parent_folder_uid
+                )))
+            }
+        };
+
+        if shared_folder.folder_key.is_empty() {
             return Err(KSMRError::SecretManagerCreationError(format!(
-                "Could not find a shared folder in the ancestry of folder uid '{}'.",
-                parent_folder_uid
-            )))
+                "Shared folder key for '{}' is empty.",
+                shared_folder.folder_uid
+            )));
         }
-    };
 
-    if shared_folder.folder_key.is_empty() {
-        return Err(KSMRError::SecretManagerCreationError(format!(
-            "Shared folder key for '{}' is empty.",
-            shared_folder.folder_uid
-        )));
+        let create_options = CreateOptions::new(shared_folder.folder_uid.clone(), sub_folder_uid);
+
+        let payload = self.prepare_create_secret_payload(
+            self.config.clone(),
+            create_options,
+            record_json_str,
+            shared_folder.folder_key.clone(),
+        )?;
+
+        self.post_query("create_secret".to_string(), &payload)?;
+        Ok(payload.record_uid.clone())
     }
-
-    let create_options = CreateOptions::new(shared_folder.folder_uid.clone(), sub_folder_uid);
-
-    let payload = self.prepare_create_secret_payload(
-        self.config.clone(),
-        create_options,
-        record_json_str,
-        shared_folder.folder_key.clone(),
-    )?;
-
-    self.post_query("create_secret".to_string(), &payload)?;
-    Ok(payload.record_uid.clone())
-}
 
     fn prepare_create_secret_payload(
         &mut self,
@@ -2112,42 +2047,44 @@ pub fn create_secret(
         Ok(results)
     }
 
-pub fn get_notation(&mut self, url: String) -> Result<serde_json::Value, KSMRError> {
-    let result = self._get_notation(url)?;
-    match &result {
-        serde_json::Value::String(s) => {
-            // Try to parse as JSON, otherwise return as string
-            match serde_json::from_str::<serde_json::Value>(s) {
-                Ok(val) => Ok(val),
-                Err(_) => Ok(result),
-            }
-        }
-        serde_json::Value::Array(arr) => {
-            // Try to parse each string as JSON, otherwise keep as string
-            let mut new_arr = Vec::new();
-            for v in arr {
-                if let serde_json::Value::String(s) = v {
-                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(s) {
-                        new_arr.push(parsed);
-                    } else {
-                        new_arr.push(serde_json::Value::String(s.clone()));
-                    }
-                } else {
-                    new_arr.push(v.clone());
+    pub fn get_notation(&mut self, url: String) -> Result<serde_json::Value, KSMRError> {
+        let result = self._get_notation(url)?;
+        match &result {
+            serde_json::Value::String(s) => {
+                // Try to parse as JSON, otherwise return as string
+                match serde_json::from_str::<serde_json::Value>(s) {
+                    Ok(val) => Ok(val),
+                    Err(_) => Ok(result),
                 }
             }
-            Ok(serde_json::Value::Array(new_arr))
+            serde_json::Value::Array(arr) => {
+                // Try to parse each string as JSON, otherwise keep as string
+                let mut new_arr = Vec::new();
+                for v in arr {
+                    if let serde_json::Value::String(s) = v {
+                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(s) {
+                            new_arr.push(parsed);
+                        } else {
+                            new_arr.push(serde_json::Value::String(s.clone()));
+                        }
+                    } else {
+                        new_arr.push(v.clone());
+                    }
+                }
+                Ok(serde_json::Value::Array(new_arr))
+            }
+            _ => Ok(result),
         }
-        _ => Ok(result),
     }
-}
 
     fn _get_notation(&mut self, url: String) -> Result<serde_json::Value, KSMRError> {
         let values = self.get_notation_result(url)?;
         if values.len() == 1 {
             Ok(serde_json::Value::String(values[0].clone()))
         } else {
-            Ok(serde_json::Value::Array(values.into_iter().map(serde_json::Value::String).collect()))
+            Ok(serde_json::Value::Array(
+                values.into_iter().map(serde_json::Value::String).collect(),
+            ))
         }
     }
 
@@ -2523,226 +2460,247 @@ pub fn get_notation(&mut self, url: String) -> Result<serde_json::Value, KSMRErr
         Ok(vec![prefix, record, selector, footer])
     }
 
-pub fn get_notation_result(&mut self, notation: String) -> Result<Vec<String>, KSMRError> {
-    let mut result = Vec::new();
-    let parsed = SecretsManager::parse_notation(&notation, false)
-        .map_err(|e| KSMRError::NotationError(e.to_string()))?;
+    pub fn get_notation_result(&mut self, notation: String) -> Result<Vec<String>, KSMRError> {
+        let mut result = Vec::new();
+        let parsed = SecretsManager::parse_notation(&notation, false)
+            .map_err(|e| KSMRError::NotationError(e.to_string()))?;
 
-    if parsed.len() < 3 {
-        return Err(KSMRError::NotationError(format!(
-            "Invalid Notation -{}",
-            notation
-        )));
-    }
-
-    let selector = parsed[2].text.clone().ok_or_else(|| {
-        KSMRError::NotationError(format!("Keeper notation is invalid : {}", notation))
-    })?.0;
-    let record_token = parsed[1].text.clone().ok_or_else(|| {
-        KSMRError::NotationError(format!(
-            "Keeper notation is invalid - missing UID/title {}.",
-            notation
-        ))
-    })?.0;
-
-    // Find the record by UID or title
-    let mut records = Vec::new();
-    let re = Regex::new(r"^[A-Za-z0-9_-]{22}$").unwrap();
-    if re.is_match(&record_token) {
-        let re_array = vec![record_token.clone()];
-        records = self.get_secrets(re_array)?;
-        if records.len() > 1 {
+        if parsed.len() < 3 {
             return Err(KSMRError::NotationError(format!(
-                "found more than one record with same uid/title: {}",
-                record_token
-            )));
-        }
-    }
-    if records.is_empty() {
-        let secrets = self.get_secrets(vec![])?;
-        if !secrets.is_empty() {
-            records = secrets
-                .iter()
-                .filter(|secret| secret.title == record_token)
-                .cloned()
-                .collect();
-        }
-    }
-    if records.len() > 1 {
-        return Err(KSMRError::NotationError(format!(
-            "Notation error -  multiple records matched {}",
-            record_token
-        )));
-    }
-    if records.is_empty() {
-        return Err(KSMRError::NotationError(format!(
-            "Notation error -  No records matched {}",
-            record_token
-        )));
-    }
-    let mut record = records[0].clone();
-
-    let parameter: Option<String> = parsed[2].parameter.clone().map(|par| par.0);
-    let index1: Option<String> = parsed[2].index1.clone().map(|ind| ind.0);
-    let index2: Option<String> = parsed[2].index2.clone().map(|ind| ind.0);
-
-    match selector.to_lowercase().as_str() {
-        "type" => {
-            if !record.record_type.is_empty() {
-                result.push(record.record_type);
-            }
-        }
-        "title" => {
-            if !record.title.is_empty() {
-                result.push(record.title);
-            }
-        }
-        "notes" => {
-            if let Some(note) = record.record_dict.get("notes") {
-                if let Some(s) = note.as_str() {
-                    result.push(s.to_string());
-                }
-            }
-        }
-        "file" => {
-            if parameter.is_none() {
-                return Err(KSMRError::NotationError(format!(
-                    "Notation error - Missing required parameter: filename or file UID for files in record '{record_token}'"
-                )));
-            }
-            if record.files.is_empty() {
-                return Err(KSMRError::NotationError(format!(
-                    "Notation error - Record {record_token} has no file attachments."
-                )));
-            }
-            let param = parameter.clone().unwrap_or_default();
-            let mut files: Vec<_> = record.files.iter_mut()
-                .filter(|file| file.name == param || file.title == param || file.uid == param)
-                .collect();
-            if files.len() > 1 {
-                return Err(KSMRError::NotationError(format!(
-                    "Notation error - Record {record_token} has multiple files matching the search criteria '{param}'"
-                )));
-            }
-            if files.is_empty() {
-                return Err(KSMRError::NotationError(format!(
-                    "Notation error - Record {record_token} has no files matching the search criteria '{param}'"
-                )));
-            }
-            let contents = files[0].get_file_data()
-                .map_err(|_| KSMRError::NotationError(format!(
-                    "Notation error - Record {record_token} has corrupted KeeperFile data."
-                )))?
-                .ok_or_else(|| KSMRError::NotationError(format!(
-                    "Notation error - Record {record_token} has corrupted KeeperFile data."
-                )))?;
-            let text = CryptoUtils::bytes_to_url_safe_str(&contents);
-            result.push(text);
-        }
-        "field" | "custom_field" => {
-            let parameter_value = parameter.clone().ok_or_else(|| {
-                KSMRError::NotationError("Notation error - Missing required parameter for the field (type or label): ex. /field/type or /custom_field/MyLabel.".to_string())
-            })?;
-
-            // Find the field in the record
-            let fields_option = record.record_dict.get("fields");
-            let fields = match fields_option {
-                Some(val) if val.is_array() => val.as_array().unwrap(),
-                _ => &Vec::new(),
-            };
-
-            let fields_filtered: Vec<serde_json::Value> = fields
-                .iter()
-                .filter(|field| {
-                    if let Some(field_obj) = field.as_object() {
-                        let type_value = field_obj.get("type")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("some_non_existing_type");
-                        let label_value = field_obj.get("label")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("some_non_existing_label");
-                        parameter_value == type_value || parameter_value == label_value
-                    } else {
-                        false
-                    }
-                })
-                .cloned()
-                .collect();
-
-            if fields_filtered.len() > 1 {
-                return Err(KSMRError::NotationError(format!(
-                    "Notation error - Record {record_token} has multiple fields matching the search criteria '{parameter_value}'"
-                )));
-            }
-            if fields_filtered.is_empty() {
-                return Err(KSMRError::NotationError(format!(
-                    "Notation error - Record {record_token} has no fields matching the search criteria '{parameter_value}'"
-                )));
-            }
-
-            let field = fields_filtered[0].clone();
-            let values: Vec<Value> = field.get("value")
-                .and_then(|v| v.as_array().cloned())
-                .unwrap_or_else(|| vec![]);
-
-            // Handle index1 (array index)
-            let idx = index1.as_ref()
-                .and_then(|s| s.parse::<usize>().ok())
-                .unwrap_or(usize::MAX);
-
-            // If index1 is specified and valid, get that value, else get all
-            let selected_values: Vec<&Value> = if idx != usize::MAX {
-                if idx < values.len() {
-                    vec![&values[idx]]
-                } else {
-                    return Err(KSMRError::NotationError(format!(
-                        "idx out of range: {} for field {}",
-                        idx, parameter_value
-                    )));
-                }
-            } else {
-                values.iter().collect()
-            };
-
-            // Handle index2 (object property)
-            let property = index2.clone().unwrap_or_default();
-
-            for val in selected_values {
-                if !property.is_empty() {
-                    if let Some(obj) = val.as_object() {
-                        if let Some(prop_val) = obj.get(&property) {
-                            if let Some(s) = prop_val.as_str() {
-                                result.push(s.to_string());
-                            } else {
-                                result.push(prop_val.to_string());
-                            }
-                        } else {
-                            return Err(KSMRError::NotationError(format!(
-                                "Property '{}' not found in field value object", property
-                            )));
-                        }
-                    } else {
-                        return Err(KSMRError::NotationError(format!(
-                            "Field value is not an object, cannot extract property '{}'", property
-                        )));
-                    }
-                } else if let Some(s) = val.as_str() {
-                    result.push(s.to_string());
-                } else {
-                    // If not a string, serialize to string
-                    result.push(val.to_string());
-                }
-            }
-        }
-        _ => {
-            return Err(KSMRError::NotationError(format!(
-                "Notation error - Invalid notation: {}",
+                "Invalid Notation -{}",
                 notation
             )));
         }
+
+        let selector = parsed[2]
+            .text
+            .clone()
+            .ok_or_else(|| {
+                KSMRError::NotationError(format!("Keeper notation is invalid : {}", notation))
+            })?
+            .0;
+        let record_token = parsed[1]
+            .text
+            .clone()
+            .ok_or_else(|| {
+                KSMRError::NotationError(format!(
+                    "Keeper notation is invalid - missing UID/title {}.",
+                    notation
+                ))
+            })?
+            .0;
+
+        // Find the record by UID or title
+        let mut records = Vec::new();
+        let re = Regex::new(r"^[A-Za-z0-9_-]{22}$").unwrap();
+        if re.is_match(&record_token) {
+            let re_array = vec![record_token.clone()];
+            records = self.get_secrets(re_array)?;
+            if records.len() > 1 {
+                return Err(KSMRError::NotationError(format!(
+                    "found more than one record with same uid/title: {}",
+                    record_token
+                )));
+            }
+        }
+        if records.is_empty() {
+            let secrets = self.get_secrets(vec![])?;
+            if !secrets.is_empty() {
+                records = secrets
+                    .iter()
+                    .filter(|secret| secret.title == record_token)
+                    .cloned()
+                    .collect();
+            }
+        }
+        if records.len() > 1 {
+            return Err(KSMRError::NotationError(format!(
+                "Notation error -  multiple records matched {}",
+                record_token
+            )));
+        }
+        if records.is_empty() {
+            return Err(KSMRError::NotationError(format!(
+                "Notation error -  No records matched {}",
+                record_token
+            )));
+        }
+        let mut record = records[0].clone();
+
+        let parameter: Option<String> = parsed[2].parameter.clone().map(|par| par.0);
+        let index1: Option<String> = parsed[2].index1.clone().map(|ind| ind.0);
+        let index2: Option<String> = parsed[2].index2.clone().map(|ind| ind.0);
+
+        match selector.to_lowercase().as_str() {
+            "type" => {
+                if !record.record_type.is_empty() {
+                    result.push(record.record_type);
+                }
+            }
+            "title" => {
+                if !record.title.is_empty() {
+                    result.push(record.title);
+                }
+            }
+            "notes" => {
+                if let Some(note) = record.record_dict.get("notes") {
+                    if let Some(s) = note.as_str() {
+                        result.push(s.to_string());
+                    }
+                }
+            }
+            "file" => {
+                if parameter.is_none() {
+                    return Err(KSMRError::NotationError(format!(
+                    "Notation error - Missing required parameter: filename or file UID for files in record '{record_token}'"
+                )));
+                }
+                if record.files.is_empty() {
+                    return Err(KSMRError::NotationError(format!(
+                        "Notation error - Record {record_token} has no file attachments."
+                    )));
+                }
+                let param = parameter.clone().unwrap_or_default();
+                let mut files: Vec<_> = record
+                    .files
+                    .iter_mut()
+                    .filter(|file| file.name == param || file.title == param || file.uid == param)
+                    .collect();
+                if files.len() > 1 {
+                    return Err(KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has multiple files matching the search criteria '{param}'"
+                )));
+                }
+                if files.is_empty() {
+                    return Err(KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has no files matching the search criteria '{param}'"
+                )));
+                }
+                let contents = files[0]
+                    .get_file_data()
+                    .map_err(|_| {
+                        KSMRError::NotationError(format!(
+                            "Notation error - Record {record_token} has corrupted KeeperFile data."
+                        ))
+                    })?
+                    .ok_or_else(|| {
+                        KSMRError::NotationError(format!(
+                            "Notation error - Record {record_token} has corrupted KeeperFile data."
+                        ))
+                    })?;
+                let text = CryptoUtils::bytes_to_url_safe_str(&contents);
+                result.push(text);
+            }
+            "field" | "custom_field" => {
+                let parameter_value = parameter.clone().ok_or_else(|| {
+                KSMRError::NotationError("Notation error - Missing required parameter for the field (type or label): ex. /field/type or /custom_field/MyLabel.".to_string())
+            })?;
+
+                // Find the field in the record
+                let fields_option = record.record_dict.get("fields");
+                let fields = match fields_option {
+                    Some(val) if val.is_array() => val.as_array().unwrap(),
+                    _ => &Vec::new(),
+                };
+
+                let fields_filtered: Vec<serde_json::Value> = fields
+                    .iter()
+                    .filter(|field| {
+                        if let Some(field_obj) = field.as_object() {
+                            let type_value = field_obj
+                                .get("type")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("some_non_existing_type");
+                            let label_value = field_obj
+                                .get("label")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("some_non_existing_label");
+                            parameter_value == type_value || parameter_value == label_value
+                        } else {
+                            false
+                        }
+                    })
+                    .cloned()
+                    .collect();
+
+                if fields_filtered.len() > 1 {
+                    return Err(KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has multiple fields matching the search criteria '{parameter_value}'"
+                )));
+                }
+                if fields_filtered.is_empty() {
+                    return Err(KSMRError::NotationError(format!(
+                    "Notation error - Record {record_token} has no fields matching the search criteria '{parameter_value}'"
+                )));
+                }
+
+                let field = fields_filtered[0].clone();
+                let values: Vec<Value> = field
+                    .get("value")
+                    .and_then(|v| v.as_array().cloned())
+                    .unwrap_or_else(|| vec![]);
+
+                // Handle index1 (array index)
+                let idx = index1
+                    .as_ref()
+                    .and_then(|s| s.parse::<usize>().ok())
+                    .unwrap_or(usize::MAX);
+
+                // If index1 is specified and valid, get that value, else get all
+                let selected_values: Vec<&Value> = if idx != usize::MAX {
+                    if idx < values.len() {
+                        vec![&values[idx]]
+                    } else {
+                        return Err(KSMRError::NotationError(format!(
+                            "idx out of range: {} for field {}",
+                            idx, parameter_value
+                        )));
+                    }
+                } else {
+                    values.iter().collect()
+                };
+
+                // Handle index2 (object property)
+                let property = index2.clone().unwrap_or_default();
+
+                for val in selected_values {
+                    if !property.is_empty() {
+                        if let Some(obj) = val.as_object() {
+                            if let Some(prop_val) = obj.get(&property) {
+                                if let Some(s) = prop_val.as_str() {
+                                    result.push(s.to_string());
+                                } else {
+                                    result.push(prop_val.to_string());
+                                }
+                            } else {
+                                return Err(KSMRError::NotationError(format!(
+                                    "Property '{}' not found in field value object",
+                                    property
+                                )));
+                            }
+                        } else {
+                            return Err(KSMRError::NotationError(format!(
+                                "Field value is not an object, cannot extract property '{}'",
+                                property
+                            )));
+                        }
+                    } else if let Some(s) = val.as_str() {
+                        result.push(s.to_string());
+                    } else {
+                        // If not a string, serialize to string
+                        result.push(val.to_string());
+                    }
+                }
+            }
+            _ => {
+                return Err(KSMRError::NotationError(format!(
+                    "Notation error - Invalid notation: {}",
+                    notation
+                )));
+            }
+        }
+        Ok(result)
     }
-    Ok(result)
-}
 
     pub fn inflate_field_value(
         &mut self,
@@ -2844,7 +2802,6 @@ pub fn get_notation_result(&mut self, notation: String) -> Result<Vec<String>, K
 
         Ok(value)
     }
-
 }
 
 #[derive(Debug, Default)]
