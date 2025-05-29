@@ -109,6 +109,9 @@ impl SecretsManagerLogger {
     pub fn new(log_level: LogLevel) -> Self {
         INIT.call_once(|| {
             let level_filter: LevelFilter = log_level.clone().into();
+            // COMMENTED OUT: This violates Rust logging best practices
+            // Libraries should NEVER initialize global loggers - only applications should do this
+            /*
             Builder::new()
                 .format(|buf: &mut env_logger::fmt::Formatter, record| {
                     use std::io::Write;
@@ -130,6 +133,8 @@ impl SecretsManagerLogger {
                 .finish();
             tracing::subscriber::set_global_default(subscriber)
                 .expect("Failed to set default subscriber");
+                
+            */
         });
         SecretsManagerLogger { log_level }
     }
