@@ -838,32 +838,45 @@ use std::io;
 use std::env;
 use keeper_secrets_manager_core::utils::set_config_mode;
 
-fn main() {
-    // Initialize the logger
-    env_logger::init();
-
-    // Specify the path to the configuration file
-    // let config_file = "path/to/config/file";
-    let c = env::current_dir().expect("is not a valid path").to_string_lossy().to_string();
-    let config_file = "./src/dummy1/dummy2/test.json";
-    // Create the configuration file for demonstration purposes
-    let created_file = File::create(config_file);
-    match created_file {
-        Ok(file) => {
-            info!("Configuration file created successfully at {}", config_file);
-        }
-        Err(e) => {
-            error!("Failed to create configuration file: {}", e);
-            return;
-        }
-    }
-    // Set the configuration mode
-    if let Err(e) = set_config_mode(config_file, None) {
-        error!("Failed to set config mode: {}", e);
-    } else {
-        info!("Configuration mode set successfully for {}", config_file);
-    }
-}
+// COMMENTED OUT: This violates Rust logging best practices
+// 
+// Libraries should NEVER initialize global loggers or call env_logger::init()
+// Only applications should control global logging configuration.
+// 
+// This main() function appears to be test/example code that was left in the library.
+// Library crates should not have main() functions - only binary crates should.
+// 
+// See Rust documentation:
+// - https://doc.rust-lang.org/cargo/reference/cargo-targets.html#library
+// - https://docs.rs/env_logger/latest/env_logger/#in-libraries
+//
+//
+// fn main() {
+//     // Initialize the logger
+//     env_logger::init();
+// 
+//     // Specify the path to the configuration file
+//     // let config_file = "path/to/config/file";
+//     let c = env::current_dir().expect("is not a valid path").to_string_lossy().to_string();
+//     let config_file = "./src/dummy1/dummy2/test.json";
+//     // Create the configuration file for demonstration purposes
+//     let created_file = File::create(config_file);
+//     match created_file {
+//         Ok(file) => {
+//             info!("Configuration file created successfully at {}", config_file);
+//         }
+//         Err(e) => {
+//             error!("Failed to create configuration file: {}", e);
+//             return;
+//         }
+//     }
+//     // Set the configuration mode
+//     if let Err(e) = set_config_mode(config_file, None) {
+//         error!("Failed to set config mode: {}", e);
+//     } else {
+//         info!("Configuration mode set successfully for {}", config_file);
+//     }
+// }
 ```
 
 */
