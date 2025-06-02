@@ -149,7 +149,7 @@ impl KeyValueStorage for FileKeyValueStorage {
         value: String,
     ) -> Result<HashMap<ConfigKeys, String>, KSMRError> {
         // Check if the key is valid
-        if ConfigKeys::get_enum(&key.value()).is_none() {
+        if ConfigKeys::get_enum(key.value()).is_none() {
             return Err(KSMRError::StorageError(format!("Invalid key: {:?}", key)));
         }
 
@@ -177,9 +177,9 @@ impl KeyValueStorage for FileKeyValueStorage {
 
         // Check if the key exists in the config and remove it
         if config.remove(&key).is_some() {
-            log::debug!("Removed key {}", key.to_string());
+            log::debug!("Removed key {}", key);
         } else {
-            log::debug!("No key {} was found in config", key.to_string());
+            log::debug!("No key {} was found in config", key);
         }
 
         // Save the updated configuration
