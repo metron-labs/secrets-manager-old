@@ -9,7 +9,7 @@
     fn main()-> Result<(), KSMRError>{
 
         let token = "<Your One time token>".to_string();
-        let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+        let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
         let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -32,8 +32,8 @@
     fn main()-> Result<(), KSMRError>{
 
         let im_base64 = "my_base_64_string".to_string();
-        let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(im_base64))?;
-        let client_options = ClientOptions::new_client_options_without_token(config);
+        let config = InMemoryKeyValueStorage::new_config_storage(Some(im_base64))?;
+        let client_options = ClientOptions::new_client_options(config);
         let mut secrets_manager = SecretsManager::new(client_options)?;
         let secrets_manager_response = secrets_manager.get_secrets_full_response(Vec::new())?;
         let records = secrets_manager_response.records;
@@ -64,8 +64,8 @@
     fn main()-> Result<(), KSMRError>{
 
         let im_base64 = "my_base_64_string".to_string();
-        let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(im_base64))?;
-        let client_options = ClientOptions::new_client_options_without_token(config);
+        let config = InMemoryKeyValueStorage::new_config_storage(Some(im_base64))?;
+        let client_options = ClientOptions::new_client_options(config);
         let mut secrets_manager = SecretsManager::new(client_options)?;
         let secrets_manager_response = secrets_manager.get_secrets_full_response(Vec::new())?;
         let records = secrets_manager_response.records;
@@ -96,7 +96,7 @@
     fn main()-> Result<(), KSMRError>{
 
         let token = "<Your One time token>".to_string();
-        let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+        let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
         let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -121,7 +121,7 @@
 
     fn main()-> Result<(), KSMRError>{
         let token = "<Your One time token>".to_string();
-        let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+        let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
         let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -150,7 +150,7 @@
 
     fn main()-> Result<(), KSMRError>{
         let token = "<Token>".to_string();
-        let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+        let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
         let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -196,7 +196,7 @@
 
     fn main()-> Result<(), KSMRError>{
         let token = "<Your One time token>".to_string();
-        let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+        let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
         let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -221,7 +221,7 @@ use keeper_secrets_manager_core::{core::{ClientOptions, SecretsManager}, custom_
 
     fn main()-> Result<(), KSMRError>{
         let token = "<Your One time token>".to_string();
-        let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+        let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
         let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -240,7 +240,7 @@ use keeper_secrets_manager_core::{core::{ClientOptions, SecretsManager}, custom_
 
     fn main()-> Result<(), KSMRError>{
         let token = "<Your One time token>".to_string();
-        let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+        let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
         let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -261,7 +261,7 @@ use keeper_secrets_manager_core::{core::{ClientOptions, SecretsManager}, custom_
 
     fn main()-> Result<(), KSMRError>{
         let token = "<Your One time token>".to_string();
-        let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+        let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
         let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -285,7 +285,7 @@ use serde_json;
 
 fn main()-> Result<(), KSMRError>{
     let token = "<token>".to_string();
-    let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+    let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
     
     let client_options = ClientOptions::new_client_options(token, file_name); 
     
@@ -333,7 +333,7 @@ use serde_json;
 
 fn main()-> Result<(), KSMRError>{
     let token = "<token>".to_string();
-    let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+    let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
     
     let client_options = ClientOptions::new_client_options(token, file_name); 
     
@@ -364,7 +364,7 @@ use keeper_secrets_manager_core::{core::{ClientOptions, SecretsManager}, custom_
 
 fn main()-> Result<(), KSMRError>{
     let token = "<Your One time token>".to_string();
-    let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+    let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
     let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -396,7 +396,7 @@ fn test_record_create_normal() -> Result<(), KSMRError>{
 
     // setup secrets manager
     let token = "US:OPLdziT0nFfISB7Wp1IEkvOVb8VLfTiO1-Y_uO0WLjI".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test_demo.json".to_string())?;
+    let config = FileKeyValueStorage::new_config_storage("test_demo.json".to_string())?;
     let client_options = ClientOptions::new_client_options(token, config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -471,7 +471,7 @@ use tracing::{info};
 
 fn main()-> Result<(), KSMRError>{
     let token = "<Your One time token>".to_string();
-    let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+    let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
 
     let client_options = ClientOptions::new_client_options(token, file_name); 
 
@@ -522,7 +522,7 @@ use keeper_secrets_manager_core::{core::{ClientOptions, SecretsManager}, custom_
 fn main()-> Result<(), KSMRError>{
     let token = "<Token>".to_string();
 
-    let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+    let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
     
     let client_options = ClientOptions::new_client_options(token, file_name); 
     
@@ -552,9 +552,9 @@ fn main(){
 
     let token = "<Token>".to_string();
 
-    let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+    let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
     
-    let mut client_options = ClientOptions::new_client_options(token, file_name);
+    let mut client_options = ClientOptions::new_client_options_with_token(token, file_name);
     client_options.set_cache(cache.into()); 
     
     let mut secrets_manager = SecretsManager::new(client_options)?;  
@@ -571,8 +571,8 @@ use keeper_secrets_manager_core::{core::{SecretsManager, ClientOptions}, enums::
 
 fn main() -> Result<(), KSMRError> {
     let base_64_string = "<YOUR_BASE64_STRING>".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(base_64_string))?;
-    let client_options = ClientOptions::new_client_options_without_token(config);
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(base_64_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let secrets_manager = SecretsManager::new(client_options)?;
 
     //Create Folder
@@ -595,8 +595,8 @@ use keeper_secrets_manager_core::{core::{SecretsManager, ClientOptions}, enums::
 
 fn main() -> Result<(), KSMRError> {
     let base_64_string = "<YOUR_BASE64_STRING>".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(base_64_string))?;
-    let client_options = ClientOptions::new_client_options_without_token(config);
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(base_64_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let secrets_manager = SecretsManager::new(client_options)?;
 
     //Get all Folders
@@ -619,8 +619,8 @@ use keeper_secrets_manager_core::{core::{SecretsManager, ClientOptions}, enums::
 
 fn main() -> Result<(), KSMRError> {
     let base_64_string = "<YOUR_BASE64_STRING>".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(base_64_string))?;
-    let client_options = ClientOptions::new_client_options_without_token(config);
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(base_64_string))?;
+    let client_options = ClientOptions::new_client_options(config);
     let secrets_manager = SecretsManager::new(client_options)?;
 
     //Update folder name

@@ -53,7 +53,7 @@ Using a token only to generate a new configuration (for later usage) requires at
 
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -77,7 +77,7 @@ Using a token only to generate a new configuration (for later usage) requires at
 
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -121,7 +121,7 @@ This shortcut gets the password of a secret once that secret has been retrieved 
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -152,7 +152,7 @@ This shortcut gets the password of a secret once that secret has been retrieved 
     };
     // setup secrets manager
     let token = "your_token_goes_here".to_string();
-    let config = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+    let config = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
     let client_options = ClientOptions::new_client_options_with_token(token, config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -194,7 +194,7 @@ This shortcut gets the password of a secret once that secret has been retrieved 
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -237,7 +237,7 @@ the value or values of the field.  It will be a single value only if the `singl
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -273,7 +273,7 @@ the value or values of the field.  It will be a single value only if the `singl
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -314,7 +314,7 @@ Get TOTP Code of given record
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -356,7 +356,7 @@ Get TOTP Code of given record
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -398,7 +398,7 @@ For a list of field types, see the [Record Types](https://docs.keeper.io/en/secr
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -440,7 +440,7 @@ for a list of field types, see the [Record Types](https://docs.keeper.io/en/secr
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -477,7 +477,7 @@ Generate Password
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -531,7 +531,7 @@ Download File
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -564,7 +564,7 @@ Example
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -632,7 +632,7 @@ The file UID of the attached file
 
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -721,7 +721,7 @@ Delete Secret
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -752,7 +752,7 @@ fn main(){
 
     let token = "<Token>".to_string();
 
-    let file_name = FileKeyValueStorage::new_for_kv_store_type("test.json".to_string())?;
+    let file_name = FileKeyValueStorage::new_config_storage("test.json".to_string())?;
     
     let mut client_options = ClientOptions::new_client_options_with_token(token, file_name);
     client_options.set_cache(cache.into()); 
@@ -791,7 +791,7 @@ Downloads full folder hierarchy.
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -823,7 +823,7 @@ Requires `CreateOptions` and folder name to be provided. The folder UID paramete
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -858,7 +858,7 @@ Updates the folder metadata—currently folder name only.
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
@@ -891,7 +891,7 @@ Example Usage
     };
     // setup secrets manager
     let config_string = "your_base64_goes_here".to_string();
-    let config = InMemoryKeyValueStorage::new_for_kv_store_type(Some(config_string))?;
+    let config = InMemoryKeyValueStorage::new_config_storage(Some(config_string))?;
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 

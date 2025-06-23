@@ -6,7 +6,7 @@
 //              |_|
 //
 // Keeper Secrets Manager
-// Copyright 2024 Keeper Security Inc.
+// Copyright 2025 Keeper Security Inc.
 // Contact: sm@keepersecurity.com
 //
 
@@ -57,7 +57,7 @@ impl FileKeyValueStorage {
         })
     }
 
-    pub fn new_for_kv_store_type(file_name: String) -> Result<KvStoreType, KSMRError> {
+    pub fn new_config_storage(file_name: String) -> Result<KvStoreType, KSMRError> {
         let file_storage = FileKeyValueStorage::new(Some(file_name.to_string()))?;
         Ok(KvStoreType::File(file_storage))
     }
@@ -285,7 +285,7 @@ impl InMemoryKeyValueStorage {
         Ok(InMemoryKeyValueStorage { config: config_map })
     }
 
-    pub fn new_for_kv_store_type(config: Option<String>) -> Result<KvStoreType, KSMRError> {
+    pub fn new_config_storage(config: Option<String>) -> Result<KvStoreType, KSMRError> {
         let in_memory = InMemoryKeyValueStorage::new(config)?;
         Ok(KvStoreType::InMemory(in_memory))
     }
