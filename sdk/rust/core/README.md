@@ -404,7 +404,7 @@ fn test_record_create_normal() -> Result<(), KSMRError>{
     use serde_json::{self, json, Number, Value};
 
     // setup secrets manager
-    let token = "US:OPLdziT0nFfISB7Wp1IEkvOVb8VLfTiO1-Y_uO0WLjI".to_string();
+    let token = "<token_here>".to_string();
     let config = FileKeyValueStorage::new_config_storage("test_demo.json".to_string())?;
     let client_options = ClientOptions::new_client_options(token, config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
@@ -537,7 +537,7 @@ fn main()-> Result<(), KSMRError>{
     
     let mut secrets_manager = SecretsManager::new(client_options)?;  
     
-    let secrets_notation_result2 = secrets_manager.get_notation("2AVyrCRB5w5zLUGHXL8IAw/field/email[2]".to_string());
+    let secrets_notation_result2 = secrets_manager.get_notation("<record_uid>/field/email[2]".to_string());
     
     match secrets_notation_result2 {
         Ok(data) => {
