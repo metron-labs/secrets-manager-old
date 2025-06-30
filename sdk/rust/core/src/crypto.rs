@@ -1305,49 +1305,6 @@ impl CryptoUtils {
         Ok(plaintext)
     }
 
-    // pub fn decrypt_aes_cbc1(data: &[u8], key: &[u8]) -> Result<Vec<u8>, KSMRError> {
-    //     // Validate key size (32 bytes for AES-256)
-    //     if key.len() != 32 {
-    //         return Err(KSMRError::CryptoError("Invalid key size".to_string()));
-    //     }
-
-    //     // Validate that data is large enough to contain an IV (16 bytes for AES-CBC)
-    //     if data.len() < 16 {
-    //         return Err(KSMRError::CryptoError(
-    //             "Data too short to contain IV".to_string(),
-    //         ));
-    //     }
-
-    //     // Extract the IV and ciphertext
-    //     let iv = &data[..16]; // First 16 bytes are the IV
-    //     let ciphertext = &data[16..]; // Remaining bytes are the encrypted data
-
-    //     // Initialize the OpenSSL AES-256-CBC cipher
-    //     let cipher = Cipher::aes_256_cbc();
-
-    //     // Create a Crypter for decryption
-    //     let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, Some(iv))
-    //         .map_err(|e| KSMRError::CryptoError(format!("Failed to create crypter: {}", e)))?;
-
-    //     crypter.pad(false);
-
-    //     // Allocate a buffer to store decrypted data
-    //     let mut plaintext = vec![0; ciphertext.len() + cipher.block_size()];
-
-    //     // Decrypt the ciphertext
-    //     let mut count = crypter
-    //         .update(ciphertext, &mut plaintext)
-    //         .map_err(|e| KSMRError::CryptoError(format!("Decryption failed: {}", e)))?;
-    //     count += crypter
-    //         .finalize(&mut plaintext[count..])
-    //         .map_err(|e| KSMRError::CryptoError(format!("Finalization failed: {}", e)))?;
-
-    //     // Truncate the plaintext to the actual size after decryption
-    //     plaintext.truncate(count);
-
-    //     Ok(plaintext)
-    // }
-
     /// Encrypts data using an ephemeral ECDH key exchange and AES-GCM.
     ///
     /// This function uses Elliptic Curve Diffie-Hellman (ECDH) to derive a shared secret between
