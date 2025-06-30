@@ -7,7 +7,7 @@ Detailed Rust SDK docs for Keeper Secrets Manager
 
 ### Source Code
 
-Find the Rust source code in the [GitHub repository](https://github.com/Keeper-Security/secrets-manager/tree/master/sdk/python)
+Find the Rust source code in the [GitHub repository](https://github.com/Keeper-Security/secrets-manager/tree/master/sdk/rust)
 
 ## Using the SDK
 
@@ -100,7 +100,7 @@ Type: `Vec<Record>`
 
 All Keeper records, or records with the given UIDs
 
-> on default - we will get all records which the token given has access to
+> default - we will get all records which the token given has access to
 
 ### Retrieve Values From a Secret
 
@@ -173,9 +173,7 @@ This shortcut gets the password of a secret once that secret has been retrieved 
 | `field_type` | `String` | Yes | None | Field type to get |
 | `single` | `boolean` | Optional | False | Return only the first value |
 
-> Fields are found by type
-> 
-> For a list of field types, see the [Record Types](https://docs.keeper.io/en/secrets-manager/commander-cli/command-reference/record-commands/default-record-types#field-types) documentation.
+> Fields are found by type. For a list of field types, see the [Record Types](https://docs.keeper.io/en/secrets-manager/commander-cli/command-reference/record-commands/default-record-types#field-types) documentation.
 
 
 ### Retrieve Custom Fields
@@ -365,7 +363,7 @@ Get TOTP Code of given record
 
     // update a field value
     let field_type= StandardFieldTypeEnum::LOGIN.get_type();
-    secret_to_update.set_standard_field_value_mut(field_type, "sample@metron.com".into())?;
+    secret_to_update.set_standard_field_value_mut(field_type, "sample@ks.com".into())?;
 
     let transaction_type: Option<UpdateTransactionType> = Some(UpdateTransactionType::None);
 
@@ -407,7 +405,7 @@ For a list of field types, see the [Record Types](https://docs.keeper.io/en/secr
 
     // update a field value
     let field_type= StandardFieldTypeEnum::LOGIN.get_type();
-    secret_to_update.set_standard_field_value_mut(field_type, "sample@metron.com".into())?;
+    secret_to_update.set_standard_field_value_mut(field_type, "sample@ks.com".into())?;
 
     let transaction_type: Option<UpdateTransactionType> = Some(UpdateTransactionType::None);
 
@@ -448,7 +446,7 @@ for a list of field types, see the [Record Types](https://docs.keeper.io/en/secr
     let secret_to_update = secrets_manager.get_secrets(["<RECORD UID>".to_string()])?;
 
     // update a field value
-    secret_to_update.set_custom_field_value_mut("Email", "sample@metron.com".into())?;
+    secret_to_update.set_custom_field_value_mut("Email", "sample@ks.com".into())?;
 
     let transaction_type: Option<UpdateTransactionType> = Some(UpdateTransactionType::None);
 
@@ -590,7 +588,7 @@ Example
 
 | Parameter | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `file_path` | `&str` | Yes |  | Path to download file |
+| `file_path` | `&str` | Yes |  | Path to upload file |
 | `file_name` | `Option<&str>` | Yes |  | Name of the file to be uploaded |
 | `file_title` | `Option<&str>` | Yes |  | Title of the file to be uploaded |
 | `mime_type` | `Option<&str>` | Yes | None | The type of data in the file. If none is provided, 'application/octet-stream' will be used |
@@ -765,7 +763,8 @@ fn main(){
 }
 ```
 
-The default caching function in KSMCache class always stores last request only—ex., a filtered request on UID1 but on disconnect request, UID2 from same cache will return empty response (although UID2 may be shared with the same KSM app but it was not cached)
+The default caching function in KSMCache class always stores last request only. 
+For example, if the first request (R1) successfully retrieves UID1 and updates the cache, but a subsequent request (R2) for UID2 fails, the cache will not include UID2. As a result, any later operations involving UID2 (e.g., lookup or disconnect) will return an empty response, since it was never added to the cache.
 
 Updating a record from cache (or creating a new record) invalidates cached record data, and consecutive updates of the same record will fail. Batch updates work as long as they modify different records. Always follow up cached record updates with a call to get\_secrets function to refresh cache (and pull updated metadata from vault like the new record revision, etc.)
 
@@ -827,7 +826,7 @@ Requires `CreateOptions` and folder name to be provided. The folder UID paramete
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
-    let parent_folder_uid: String = "Yi_OxwTV2tdBWi-_Aegs_w".to_string();
+    let parent_folder_uid: String = "<parent_folder_uid>".to_string();
     let sub_folder_uid: Option<String> = Option::Some((""));
     let create_options: CreateOptions = CreateOptions::new(parent_folder_uid, None);
     let new_folder_name: String = "Sample Folder 200".to_string();
@@ -895,6 +894,6 @@ Example Usage
     let client_options = ClientOptions::new_client_options(config);
     let mut secrets_manager = SecretsManager::new(client_options)?;
 
-    let folder_uids = vec!["RVP2YCVnjzQttOsE6X8zGQ".to_string(),"Yi_OxwTV2tdBWi-_Aegs_w".to_string()];
+    let folder_uids = vec!["folder1_uid".to_string(),"folder_2_uid".to_string()];
     secrets_manager.delete_folder(folder_uids, true)?;
 ``` 

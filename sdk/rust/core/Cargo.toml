@@ -1,8 +1,15 @@
 [package]
 name = "keeper-secrets-manager-core"
-version = "17.0.0"
+version = "16.6.6"
 authors = ["Keeper Security <sm@keepersecurity.com>"]
 edition = "2021"
+description = "Rust SDK for Keeper Secrets Manager"
+license = "MIT"
+repository = "https://github.com/Keeper-Security/secrets-manager"
+homepage = "https://docs.keeper.io/en/keeperpam/secrets-manager/overview"
+readme = "README.md"
+keywords = ["secrets", "security", "keeper", "vault", "password-manager"]
+categories = ["cryptography", "api-bindings"]
 
 [lib]
 name = "keeper_secrets_manager_core"
